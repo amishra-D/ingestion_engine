@@ -4,7 +4,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel
 
-from src.features.Tradebook.Application.DTO.Outputs.TradeBookdto import TradeBookDto
+from src.features.Tradebook.Application.DTO.Outputs.TradeBookOutDto import TradeBookOutDto
 from src.ingestion_engine.engine import ingestion_engine
 from src.shared.security.dependencies import TokenPayload, require_roles
 
@@ -83,7 +83,7 @@ async def get_status():
 
 @router.post(
     "/generate-sample",
-    response_model=list[TradeBookDto],
+    response_model=list[TradeBookOutDto],
     status_code=status.HTTP_201_CREATED,
 )
 async def generate_sample(
@@ -96,7 +96,7 @@ async def generate_sample(
 
     # Return in the exact TradeBook API format
     return [
-        TradeBookDto(
+        TradeBookOutDto(
             trade_id=t["MainTradeID"],
             member_code=str(t["MemberCode"]),
             symbol=t["ScripCode"],

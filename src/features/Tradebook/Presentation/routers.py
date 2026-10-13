@@ -1,7 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-
-from src.features.Tradebook.Application.DTO.Inputs.Userdata import UserData
-from src.features.Tradebook.Application.DTO.Outputs.TradeBookdto import TradeBookDto
+import time
+from src.features.Tradebook.Presentation.schemas.UserRequest import UserRequest
+from src.features.Tradebook.Application.DTO.Inputs.UserdataDTO import UserDataDTO
+from src.features.Tradebook.Application.DTO.Outputs.TradeBookOutDto import TradeBookPageOutDto
+from src.features.Tradebook.Application.DTO.Inputs.TradeBookDTO import TradeBookDTO
+from src.features.Tradebook.Application.DTO.Inputs.BiDirectionalPaginationDTO import BiDirectionalPaginationDTO
 from src.features.Tradebook.Application.use_cases.get_trade import GetTradeUseCase
 from src.features.Tradebook.Domain.exceptions import (
     PrivilegeEscalationException,
@@ -23,12 +26,12 @@ def get_trade_use_case() -> GetTradeUseCase:
     return GetTradeUseCase(repository)
 
 
-@router.post("/get-tradebook", response_model=list[TradeBookDto], status_code=status.HTTP_200_OK)
+@router.post("/get-tradebook", response_model=TradeBookPageOutDto, status_code=status.HTTP_200_OK)
 async def get_tradebook_req(
-    user_query: UserData,
+    user_query: UserRequest,
     current_user: TokenPayload = Depends(require_roles(["ADMIN", "BROKER", "DEALER", "GROUP"])),
-    use_case: GetTradeUseCase = Depends(get_trade_use_case)
-):
+    use_case: GetTradeUseCase = Depends(get_trade_use_case),
+) -> TradeBookPageOutDto:
     try:
         # 1. Enforce RBAC privilege validation: Non-admin users cannot assume higher or different roles
         if (
@@ -55,17 +58,21 @@ async def get_tradebook_req(
         # 3. Construct securely bounded query for the Stored Procedure
         effective_role = user_query.role if current_user.role.upper() == "ADMIN" and user_query.role else current_user.role
         effective_userid = user_query.userid if current_user.role.upper() == "ADMIN" else current_user.sub
-
-        secured_user_query = UserData(
-            role=effective_role,
-            userid=effective_userid,
-            accountcode=user_query.accountcode,
-            groupcode=user_query.groupcode,
-            cursorid=user_query.cursorid,
-            limit=user_query.limit,
-        )
-
-        return await use_case.execute_get_trade(secured_user_query)
+        start=time.perf_counter() ### Counter start for tradebook SP execution with DTOs and other overhead
+        secured_user_query = TradeBookDTO(
+            user=UserDataDTO(role=effective_role,
+                            userid=effective_userid,
+                            accountcode=user_query.accountcode,
+                            groupcode=user_query.groupcode),
+            pagination=BiDirectionalPaginationDTO(cursor_start=user_query.cursor_start,
+                                                  limit=user_query.limit,
+                                                  cursor_end=user_query.cursor_end
+                                                  )
+            )
+        res=await use_case.execute_get_trade(secured_user_query)
+        end_time=time.perf_counter()-start
+        print(f"The query took {end_time} s") ### Counter end for tradebook SP execution with DTOs and other overhead
+        return res
 
     except PrivilegeEscalationException as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))

@@ -42,4 +42,4 @@ def decode_access_token(token: str) -> TokenPayload:
         )
         return TokenPayload(**decoded)
     except jwt.PyJWTError as e:
-        raise ValueError(f"Invalid or expired token: {e!s}") from e
+        raise ValueError(f"Invalid or expired token: {e}") from e

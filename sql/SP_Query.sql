@@ -1,111 +1,42 @@
-use friskit_sample
-go
+USE friskit_sample;
+GO
+
 CREATE OR ALTER PROCEDURE dbo.usp_GetTradeBook
 (
-    -- =========================================================
-    -- ACCESS / AUTHORIZATION
-    -- =========================================================
-    @Role                   VARCHAR(20),
-    @UserID                 VARCHAR(30) = NULL,
-    @AccountCode            VARCHAR(30) = NULL,
-    @GroupCode              VARCHAR(10) = NULL,
+    -- Access / Authorization
+    @Role           VARCHAR(20),
+    @UserId         VARCHAR(30) = NULL,
+    @AccountCode    VARCHAR(30) = NULL,
+    @GroupCode      VARCHAR(10) = NULL,
 
-    -- =========================================================
-    -- COLUMN / FILTER CONTROL
-    -- =========================================================
-    @ColDef                 VARCHAR(MAX) = NULL,
-    @FilterClause           VARCHAR(MAX) = NULL,
-    @DynamicValues          VARCHAR(MAX) = NULL,
-
-    -- =========================================================
-    -- SORTING
-    -- =========================================================
-    @OrderByClause          VARCHAR(MAX) = NULL,
-    @ReverseOrderByClause   VARCHAR(MAX) = NULL,
-
-    -- =========================================================
-    -- TOKEN / CURSOR
-    -- =========================================================
-    @TokenColumns           VARCHAR(MAX) = NULL,
-    @CursorID               BIGINT = NULL,
-
-    -- =========================================================
-    -- PAGINATION
-    -- =========================================================
-    @Limit                  INT = 50,
-    @Direction              VARCHAR(10) = 'NEXT',
-    @HasCursor              BIT = 0
+    -- Keyset Bidirectional Pagination
+    @StartCursor    BIGINT = NULL,   -- Provided when navigating backward (PREV)
+    @EndCursor      BIGINT = NULL,   -- Provided when navigating forward (NEXT)
+    @Limit          INT = 10
 )
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    DECLARE @ReturnCode INT = 0;
+    -- 1. Clamp & sanitize limit
+    IF @Limit IS NULL OR @Limit <= 0
+        SET @Limit = 10;
+    IF @Limit > 5000
+        SET @Limit = 5000;
 
-    BEGIN TRY
+    -- Treat <= 0 or empty cursors as NULL
+    IF @StartCursor <= 0 SET @StartCursor = NULL;
+    IF @EndCursor <= 0 SET @EndCursor = NULL;
 
-        /* =====================================================
-           1. VALIDATE BASIC PARAMETERS
-           ===================================================== */
+    -- 2. Determine pagination direction:
+    --    - If @StartCursor is provided -> BACKWARD (previous page)
+    --    - Else (if @EndCursor is provided or initial load) -> FORWARD (next page)
+    DECLARE @IsBackward BIT = CASE WHEN @StartCursor IS NOT NULL THEN 1 ELSE 0 END;
+    DECLARE @FetchLimit INT = @Limit + 1; -- +1 lookahead row to determine HasNext / HasPrev
 
-        IF @Role NOT IN
-        (
-            'ADMIN',
-            'BROKER',
-            'DEALER',
-            'GROUP'
-        )
-        BEGIN
-            RETURN 1001;
-        END;
-
-
-        IF @Limit IS NULL OR @Limit <= 0
-            SET @Limit = 50;
-
-        IF @Limit > 5000
-            SET @Limit = 5000;
-
-
-        IF @Direction NOT IN ('NEXT', 'PREVIOUS')
-        BEGIN
-            RETURN 1002;
-        END;
-
-
-        /* =====================================================
-           2. VALIDATE ACCESS PARAMETERS
-           ===================================================== */
-
-        IF @Role = 'DEALER'
-           AND @UserID IS NULL
-        BEGIN
-            RETURN 1003;
-        END;
-
-
-        IF @Role = 'BROKER'
-           AND @AccountCode IS NULL
-        BEGIN
-            RETURN 1004;
-        END;
-
-
-        IF @Role = 'GROUP'
-           AND @GroupCode IS NULL
-        BEGIN
-            RETURN 1005;
-        END;
-
-
-        /* =====================================================
-           3. DEFAULT COLUMN LIST
-           ===================================================== */
-
-        DECLARE @Columns NVARCHAR(MAX);
-
-        SET @Columns =
-        N'
+    -- 3. Base filtered CTE applying RBAC & Cursor seek predicate
+    ;WITH AuthorizedTrades AS (
+        SELECT
             TB.id,
             TB.SQLDateTime,
             TB.DateTime,
@@ -131,282 +62,113 @@ BEGIN
             TB.ReferenceText,
             TB.PendingQty,
             TB.CustomID
-        ';
-
-
-        /* =====================================================
-           4. OPTIONAL COLUMN SELECTION
-           
-           IMPORTANT:
-           @ColDef is NOT blindly inserted into SQL.
-           Only known columns are allowed.
-           ===================================================== */
-
-        IF @ColDef IS NOT NULL
-        BEGIN
-
-            SET @Columns = '';
-
-            DECLARE @ColumnName VARCHAR(100);
-
-            DECLARE ColumnCursor CURSOR LOCAL FAST_FORWARD
-            FOR
-                SELECT LTRIM(RTRIM(value))
-                FROM STRING_SPLIT(@ColDef, ',');
-
-            OPEN ColumnCursor;
-
-            FETCH NEXT FROM ColumnCursor
-            INTO @ColumnName;
-
-            WHILE @@FETCH_STATUS = 0
-            BEGIN
-
-                IF @ColumnName IN
-                (
-                    'id',
-                    'SQLDateTime',
-                    'DateTime',
-                    'TradeNum',
-                    'OrderNum',
-                    'UserID',
-                    'TerminalID',
-                    'CTCLID',
-                    'AlgoID',
-                    'AccountCode',
-                    'MemberCode',
-                    'ScripCode',
-                    'Exchange',
-                    'OptType',
-                    'ExpiryDate',
-                    'StrikePrice',
-                    'ScripDescription',
-                    'BuySellFlag',
-                    'TradeQty',
-                    'TradePrice',
-                    'MainTradeID',
-                    'SecurityType',
-                    'ReferenceText',
-                    'PendingQty',
-                    'CustomID'
-                )
-                BEGIN
-
-                    IF @Columns <> ''
-                        SET @Columns = @Columns + ', ';
-
-                    SET @Columns =
-                        @Columns + 'TB.' + QUOTENAME(@ColumnName);
-
-                END
-                ELSE
-                BEGIN
-                    CLOSE ColumnCursor;
-                    DEALLOCATE ColumnCursor;
-
-                    RETURN 1006;
-                END;
-
-                FETCH NEXT FROM ColumnCursor
-                INTO @ColumnName;
-            END;
-
-            CLOSE ColumnCursor;
-            DEALLOCATE ColumnCursor;
-
-        END;
-
-
-        /* =====================================================
-           5. BUILD AUTHORIZATION CONDITION
-           ===================================================== */
-
-        DECLARE @AccessCondition NVARCHAR(MAX);
-
-        SET @AccessCondition =
-        N'
-        (
-               @Role = ''ADMIN''
-
-            OR (
-                @Role = ''BROKER''
-                AND TB.AccountCode = @AccountCode
-            )
-
-            OR (
-                @Role = ''DEALER''
-                AND TB.UserID = @UserID
-            )
-
-            OR (
-                @Role = ''GROUP''
-                AND EXISTS
-                (
+        FROM dbo.vw_TradeBook TB
+        WHERE
+            -- RBAC Authorization Predicates
+            (
+                (@Role = 'ADMIN')
+                OR (@Role = 'BROKER' AND TB.AccountCode = @AccountCode)
+                OR (@Role = 'DEALER' AND TB.UserID = @UserId)
+                OR (@Role = 'GROUP' AND EXISTS (
                     SELECT 1
                     FROM dbo.Config_DealerMap DM
                     WHERE DM.GroupCode = @GroupCode
                       AND DM.DealerCode = TB.UserID
                       AND DM.AccountCode = TB.AccountCode
-                )
+                ))
             )
-        )
-        ';
-
-
-        /* =====================================================
-           6. SORTING
-           ===================================================== */
-
-        DECLARE @OrderBy NVARCHAR(200);
-
-        SET @OrderBy = N'TB.id DESC';
-
-        IF @OrderByClause IS NOT NULL
-        BEGIN
-
-            IF @OrderByClause = 'id'
-                SET @OrderBy = N'TB.id ASC';
-
-            ELSE IF @OrderByClause = 'id_desc'
-                SET @OrderBy = N'TB.id DESC';
-
-            ELSE IF @OrderByClause = 'trade_num'
-                SET @OrderBy = N'TB.TradeNum ASC';
-
-            ELSE IF @OrderByClause = 'trade_num_desc'
-                SET @OrderBy = N'TB.TradeNum DESC';
-
-            ELSE IF @OrderByClause = 'price'
-                SET @OrderBy = N'TB.TradePrice ASC';
-
-            ELSE IF @OrderByClause = 'price_desc'
-                SET @OrderBy = N'TB.TradePrice DESC';
-
-            ELSE
-                RETURN 1007;
-
-        END;
-
-
-        /* =====================================================
-           7. CURSOR PAGINATION
-           ===================================================== */
-
-        DECLARE @CursorCondition NVARCHAR(MAX) = N'';
-
-        IF @HasCursor = 1
-        BEGIN
-
-            IF @CursorID IS NULL
-                RETURN 1008;
-
-            IF @Direction = 'NEXT'
-            BEGIN
-
-                IF @OrderBy = N'TB.id DESC'
-                    SET @CursorCondition =
-                        N' AND TB.id < @CursorID ';
-
-                ELSE
-                    SET @CursorCondition =
-                        N' AND TB.id > @CursorID ';
-
-            END;
-
-            IF @Direction = 'PREVIOUS'
-            BEGIN
-
-                IF @OrderBy = N'TB.id DESC'
-                    SET @CursorCondition =
-                        N' AND TB.id > @CursorID ';
-
-                ELSE
-                    SET @CursorCondition =
-                        N' AND TB.id < @CursorID ';
-
-            END;
-
-        END;
-
-
-        /* =====================================================
-           8. BUILD FINAL QUERY
-           ===================================================== */
-
-        DECLARE @SQL NVARCHAR(MAX);
-
-        SET @SQL =
-        N'
-        SELECT
-            ' + @Columns + N',
-
-            COUNT_BIG(*) OVER() AS TotalRecords
-
-        FROM dbo.tbTradeBook TB
-
-        WHERE
-            ' + @AccessCondition + N'
-
-            ' + @CursorCondition + N'
-
+            -- Keyset Seek Predicates (Default sort is id DESC)
+            AND (
+                -- Forward pagination: seek older trades (id < @EndCursor)
+                (@IsBackward = 0 AND (@EndCursor IS NULL OR TB.id < @EndCursor))
+                -- Backward pagination: seek newer trades (id > @StartCursor)
+                OR (@IsBackward = 1 AND TB.id > @StartCursor)
+            )
+    ),
+    FetchedRows AS (
+        SELECT TOP (@FetchLimit)
+            *,
+            ROW_NUMBER() OVER(
+                ORDER BY
+                    CASE WHEN @IsBackward = 1 THEN id END ASC,
+                    CASE WHEN @IsBackward = 0 THEN id END DESC
+            ) AS RowNum
+        FROM AuthorizedTrades
         ORDER BY
-            ' + @OrderBy + N'
-
-        OFFSET 0 ROWS
-        FETCH NEXT @Limit ROWS ONLY;
-        ';
-
-
-        /* =====================================================
-           9. EXECUTE
-           ===================================================== */
-
-        EXEC sp_executesql
-            @SQL,
-
-            N'
-                @Role VARCHAR(20),
-                @UserID VARCHAR(30),
-                @AccountCode VARCHAR(30),
-                @GroupCode VARCHAR(10),
-                @CursorID BIGINT,
-                @Limit INT
-            ',
-
-            @Role = @Role,
-            @UserID = @UserID,
-            @AccountCode = @AccountCode,
-            @GroupCode = @GroupCode,
-            @CursorID = @CursorID,
-            @Limit = @Limit;
-
-
-        RETURN @ReturnCode;
-
-    END TRY
-
-    BEGIN CATCH
-
-        DECLARE @ErrorMessage NVARCHAR(4000);
-        DECLARE @ErrorNumber INT;
-
+            CASE WHEN @IsBackward = 1 THEN id END ASC,
+            CASE WHEN @IsBackward = 0 THEN id END DESC
+    ),
+    PageWindow AS (
+        -- Trim the extra lookahead row, keeping only @Limit rows
+        SELECT *
+        FROM FetchedRows
+        WHERE RowNum <= @Limit
+    ),
+    SummaryMeta AS (
         SELECT
-            @ErrorMessage = ERROR_MESSAGE(),
-            @ErrorNumber = ERROR_NUMBER();
+            COUNT(*) AS FetchedCount,
+            -- StartCursor = Highest ID in page (first displayed row)
+            CAST(MAX(id) AS NVARCHAR(50)) AS StartCursor,
+            -- EndCursor = Lowest ID in page (last displayed row)
+            CAST(MIN(id) AS NVARCHAR(50)) AS EndCursor
+        FROM PageWindow
+    )
+    SELECT
+        P.id,
+        P.SQLDateTime,
+        P.DateTime,
+        P.TradeNum,
+        P.OrderNum,
+        P.UserID,
+        P.TerminalID,
+        P.CTCLID,
+        P.AlgoID,
+        P.AccountCode,
+        P.MemberCode,
+        P.ScripCode,
+        P.Exchange,
+        P.OptType,
+        P.ExpiryDate,
+        P.StrikePrice,
+        P.ScripDescription,
+        P.BuySellFlag,
+        P.TradeQty,
+        P.TradePrice,
+        P.MainTradeID,
+        P.SecurityType,
+        P.ReferenceText,
+        P.PendingQty,
+        P.CustomID,
 
-        THROW;
+        -- Pagination edge cursors
+        ISNULL(M.StartCursor, '') AS StartCursor,
+        ISNULL(M.EndCursor, '') AS EndCursor,
 
-    END CATCH
+        -- Calculate HasPrev and HasNext flags based on lookahead & direction
+        CAST(
+            CASE
+                WHEN @IsBackward = 1 THEN
+                    -- If we were going backward and found more than @Limit rows, there is still more backward
+                    CASE WHEN (SELECT COUNT(*) FROM FetchedRows) > @Limit THEN 1 ELSE 0 END
+                ELSE
+                    -- If going forward, we have a previous page only if we started past an EndCursor
+                    CASE WHEN @EndCursor IS NOT NULL THEN 1 ELSE 0 END
+            END AS BIT
+        ) AS HasPrev,
+
+        CAST(
+            CASE
+                WHEN @IsBackward = 1 THEN
+                    -- If going backward, we always have a next page (the page we came from)
+                    1
+                ELSE
+                    -- If going forward, check if lookahead row exists
+                    CASE WHEN (SELECT COUNT(*) FROM FetchedRows) > @Limit THEN 1 ELSE 0 END
+            END AS BIT
+        ) AS HasNext
+
+    FROM PageWindow P
+    CROSS JOIN SummaryMeta M
+    ORDER BY P.id DESC;
 END;
 GO
-
-EXEC dbo.usp_GetTradeBook
-    @Role = 'ADMIN'
-
-EXEC dbo.usp_GetTradeBook
-    @Role = 'GROUP',
-    @GroupCode = 'HO';
-
-EXEC dbo.usp_GetTradeBook
-    @Role = 'ADMIN',
-    @Limit = 10;
