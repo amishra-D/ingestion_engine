@@ -172,3 +172,150 @@ BEGIN
     ORDER BY P.id DESC;
 END;
 GO
+
+-- =========================================================================
+-- PRIVILEGE MANAGEMENT & RBAC VERIFICATION TEST SUITE
+-- =========================================================================
+
+-- -------------------------------------------------------------------------
+-- 1. ADMIN PRIVILEGE TESTS (Full Access & Impersonation)
+-- -------------------------------------------------------------------------
+-- 1A. Admin sees ALL trades (Unrestricted audit query)
+PRINT '>>> TEST 1A: ADMIN unrestricted query (all trades across entire firm)';
+EXEC dbo.usp_GetTradeBook
+    @Role = 'ADMIN',
+    @Limit = 5;
+
+-- 1B. Admin impersonates a specific Dealer view ('SUP')
+PRINT '>>> TEST 1B: ADMIN filtering for Dealer SUP';
+EXEC dbo.usp_GetTradeBook
+    @Role = 'ADMIN',
+    @UserId = 'SUP',
+    @Limit = 5;
+
+-- 1C. Admin impersonates a specific Broker Account ('90068')
+PRINT '>>> TEST 1C: ADMIN filtering for Broker Account 90068';
+EXEC dbo.usp_GetTradeBook
+    @Role = 'ADMIN',
+    @AccountCode = '90068',
+    @Limit = 5;
+
+-- 1D. Admin impersonates a specific Group ('HO')
+PRINT '>>> TEST 1D: ADMIN filtering for Head Office Group HO';
+EXEC dbo.usp_GetTradeBook
+    @Role = 'ADMIN',
+    @GroupCode = 'HO',
+    @Limit = 5;
+
+
+-- -------------------------------------------------------------------------
+-- 2. BROKER PRIVILEGE TESTS (AccountCode Segregation)
+-- -------------------------------------------------------------------------
+-- 2A. Broker '90068' views all trades under their clearing account
+-- Expected: Sees trades executed by dealers SUP, D001, D002 under account 90068
+PRINT '>>> TEST 2A: BROKER 90068 query (all dealers under this account)';
+EXEC dbo.usp_GetTradeBook
+    @Role = 'BROKER',
+    @AccountCode = '90068',
+    @Limit = 5;
+
+-- 2B. Broker '90069' views trades under their account
+-- Expected: Sees trades executed by dealers D003, D004 under account 90069
+PRINT '>>> TEST 2B: BROKER 90069 query';
+EXEC dbo.usp_GetTradeBook
+    @Role = 'BROKER',
+    @AccountCode = '90069',
+    @Limit = 5;
+
+-- 2C. Broker '90068' inspects a specific dealer under their account ('SUP')
+PRINT '>>> TEST 2C: BROKER 90068 inspecting specific dealer SUP';
+EXEC dbo.usp_GetTradeBook
+    @Role = 'BROKER',
+    @AccountCode = '90068',
+    @UserId = 'SUP',
+    @Limit = 5;
+
+-- 2D. Broker querying without AccountCode
+-- Expected: 0 rows returned (security safeguard: AccountCode is required)
+PRINT '>>> TEST 2D: BROKER without AccountCode (Expected: 0 rows)';
+EXEC dbo.usp_GetTradeBook
+    @Role = 'BROKER',
+    @AccountCode = NULL,
+    @Limit = 5;
+
+
+-- -------------------------------------------------------------------------
+-- 3. DEALER PRIVILEGE TESTS (Individual Terminal Segregation)
+-- -------------------------------------------------------------------------
+-- 3A. Dealer 'SUP' queries their own tradebook
+-- Expected: Returns strictly trades where UserID = 'SUP'
+PRINT '>>> TEST 3A: DEALER SUP querying own trades';
+EXEC dbo.usp_GetTradeBook
+    @Role = 'DEALER',
+    @UserId = 'SUP',
+    @Limit = 5;
+
+-- 3B. Dealer 'D001' queries their own tradebook
+-- Expected: Returns strictly trades where UserID = 'D001'
+PRINT '>>> TEST 3B: DEALER D001 querying own trades';
+EXEC dbo.usp_GetTradeBook
+    @Role = 'DEALER',
+    @UserId = 'D001',
+    @Limit = 5;
+
+-- 3C. Dealer querying without UserId
+-- Expected: 0 rows returned (security safeguard: UserID is required)
+PRINT '>>> TEST 3C: DEALER without UserId (Expected: 0 rows)';
+EXEC dbo.usp_GetTradeBook
+    @Role = 'DEALER',
+    @UserId = NULL,
+    @Limit = 5;
+
+
+-- -------------------------------------------------------------------------
+-- 4. GROUP PRIVILEGE TESTS (Branch / Head Office Mapping via Config_DealerMap)
+-- -------------------------------------------------------------------------
+-- 4A. Group 'HO' (Head Office)
+-- Expected: Sees trades for mapped dealers (SUP, D001, D002, D003) under mapped accounts (90068, 90069)
+PRINT '>>> TEST 4A: GROUP HO (Head Office - mapped to dealers SUP, D001, D002, D003)';
+EXEC dbo.usp_GetTradeBook
+    @Role = 'GROUP',
+    @GroupCode = 'HO',
+    @Limit = 5;
+
+-- 4B. Group 'GRP2' (Branch 2)
+-- Expected: Sees trades for mapped dealer D004 under account 90069
+PRINT '>>> TEST 4B: GROUP GRP2 (Branch 2 - mapped to dealer D004)';
+EXEC dbo.usp_GetTradeBook
+    @Role = 'GROUP',
+    @GroupCode = 'GRP2',
+    @Limit = 5;
+
+-- 4C. Non-existent Group
+-- Expected: 0 rows returned
+PRINT '>>> TEST 4C: Non-existent GROUP UNKNOWN (Expected: 0 rows)';
+EXEC dbo.usp_GetTradeBook
+    @Role = 'GROUP',
+    @GroupCode = 'UNKNOWN',
+    @Limit = 5;
+
+
+-- -------------------------------------------------------------------------
+-- 5. COMBINED RBAC + KEYSET PAGINATION TESTS
+-- -------------------------------------------------------------------------
+-- 5A. Forward seek (Next Page for Broker 90068 after EndCursor)
+PRINT '>>> TEST 5A: BROKER 90068 Forward Seek (Next Page after EndCursor = 5000)';
+EXEC dbo.usp_GetTradeBook
+    @Role = 'BROKER',
+    @AccountCode = '90068',
+    @EndCursor = 5000,
+    @Limit = 5;
+
+-- 5B. Backward seek (Previous Page for Dealer SUP before StartCursor)
+PRINT '>>> TEST 5B: DEALER SUP Backward Seek (Prev Page before StartCursor = 4000)';
+EXEC dbo.usp_GetTradeBook
+    @Role = 'DEALER',
+    @UserId = 'SUP',
+    @StartCursor = 4000,
+    @Limit = 5;
+GO

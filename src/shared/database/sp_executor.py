@@ -80,17 +80,17 @@ class StoredProcedureExecutor:
             return result_sets
 
 # 1. Method used to call a stored procedure for a single result sets
-    async def execute(
-        self,
-        procedure_name: str,
-        params: dict[str, Any] | None = None,
-    ) -> ResultSet:
-        """
-        Backward-compatible method: return the first row set.
-        """
-        result_sets = await self.execute_result_sets(
-            procedure_name,
-            params,
-        )
+    # async def execute(
+    #     self,
+    #     procedure_name: str,
+    #     params: dict[str, Any] | None = None,
+    # ) -> ResultSet:
+    #     """
+    #     Backward-compatible method: return the first row set.
+    #     """
+    #     result_sets = await self.execute_result_sets(
+    #         procedure_name,
+    #         params,
+    #     )
 
-        return result_sets[0] if result_sets else []
+    #     return result_sets[0] if result_sets else []
