@@ -113,17 +113,32 @@ class TestUserRequestSchemaValidation(unittest.TestCase):
 
 
 class TestPaginationDataEntity(unittest.TestCase):
-    def test_pagination_data_encodes_numeric_strings(self):
-        p = PaginationData(cursor_start="500", cursor_end="491", has_prev=True, has_next=False)
-        self.assertEqual(p.cursor_start, "NTAw")
-        self.assertEqual(p.cursor_end, "NDkx")
+    def test_pagination_data_holds_raw_values_without_post_init(self):
+        p = PaginationData(cursor_start=500, cursor_end=491, has_prev=True, has_next=False)
+        self.assertEqual(p.cursor_start, 500)
+        self.assertEqual(p.cursor_end, 491)
         self.assertTrue(p.has_prev)
         self.assertFalse(p.has_next)
 
     def test_pagination_data_handles_empty_or_none(self):
-        p = PaginationData(cursor_start="", cursor_end=None)
+        p = PaginationData(cursor_start=None, cursor_end=None)
         self.assertIsNone(p.cursor_start)
         self.assertIsNone(p.cursor_end)
+
+
+class TestBiDirectionalPaginationDTO(unittest.TestCase):
+    def test_dto_decodes_base64_cursor(self):
+        dto = BiDirectionalPaginationDTO(cursor_start="NTAw", cursor_end=None, limit=10)
+        self.assertEqual(dto.cursor_start, 500)
+        self.assertIsNone(dto.cursor_end)
+
+    def test_dto_accepts_raw_int_cursor(self):
+        dto = BiDirectionalPaginationDTO(cursor_start=None, cursor_end=491, limit=10)
+        self.assertEqual(dto.cursor_end, 491)
+
+    def test_dto_handles_empty_cursor(self):
+        dto = BiDirectionalPaginationDTO(cursor_start="", cursor_end=None, limit=10)
+        self.assertIsNone(dto.cursor_start)
 
 
 class TestGetTradeRepositoryPaginationFlow(unittest.TestCase):
@@ -132,20 +147,26 @@ class TestGetTradeRepositoryPaginationFlow(unittest.TestCase):
         self.repository = GetTradeRepository(self.mock_sp_executor)
 
     def test_repository_encodes_sql_cursors_into_output_dto(self):
-        # Simulate SQL SP row with raw unencoded string cursors
-        self.mock_sp_executor.execute.return_value = [
-            {
-                "MainTradeID": 500,
-                "MemberCode": "MEM01",
-                "ScripCode": "RELIANCE",
-                "TradeQty": 50,
-                "TradePrice": Decimal("2450.50"),
-                "DateTime": datetime.now(UTC),
-                "StartCursor": "500",
-                "EndCursor": "491",
-                "HasPrev": True,
-                "HasNext": True,
-            }
+        # Result set 1: trades, Result set 2: pagination metadata
+        self.mock_sp_executor.execute_result_sets.return_value = [
+            [
+                {
+                    "MainTradeID": 500,
+                    "MemberCode": "MEM01",
+                    "ScripCode": "RELIANCE",
+                    "TradeQty": 50,
+                    "TradePrice": Decimal("2450.50"),
+                    "DateTime": datetime.now(UTC),
+                }
+            ],
+            [
+                {
+                    "StartCursor": 500,
+                    "EndCursor": 491,
+                    "HasPrev": True,
+                    "HasNext": True,
+                }
+            ],
         ]
 
         query_dto = TradeBookDTO(
@@ -164,19 +185,25 @@ class TestGetTradeRepositoryPaginationFlow(unittest.TestCase):
     def test_end_to_end_cursor_loop(self):
         """Simulate Client -> API -> SQL -> Response -> Client Next Page -> API -> SQL."""
         # 1. API responds with page 1 containing Base64 encoded cursors
-        self.mock_sp_executor.execute.return_value = [
-            {
-                "MainTradeID": 500,
-                "MemberCode": "MEM01",
-                "ScripCode": "TCS",
-                "TradeQty": 100,
-                "TradePrice": Decimal("3500.00"),
-                "DateTime": datetime.now(UTC),
-                "StartCursor": "500",
-                "EndCursor": "491",
-                "HasPrev": False,
-                "HasNext": True,
-            }
+        self.mock_sp_executor.execute_result_sets.return_value = [
+            [
+                {
+                    "MainTradeID": 500,
+                    "MemberCode": "MEM01",
+                    "ScripCode": "TCS",
+                    "TradeQty": 100,
+                    "TradePrice": Decimal("3500.00"),
+                    "DateTime": datetime.now(UTC),
+                }
+            ],
+            [
+                {
+                    "StartCursor": 500,
+                    "EndCursor": 491,
+                    "HasPrev": False,
+                    "HasNext": True,
+                }
+            ],
         ]
         page_1 = asyncio.run(
             self.repository.execute_get_trade(
@@ -207,10 +234,10 @@ class TestGetTradeRepositoryPaginationFlow(unittest.TestCase):
         )
 
         # 6. Repository executes SP with integer EndCursor: 491
-        self.mock_sp_executor.execute.return_value = []
+        self.mock_sp_executor.execute_result_sets.return_value = [[], []]
         asyncio.run(self.repository.execute_get_trade(next_dto))
 
-        call_args = self.mock_sp_executor.execute.call_args[0]
+        call_args = self.mock_sp_executor.execute_result_sets.call_args[0]
         sp_name = call_args[0]
         sp_params = call_args[1]
 
