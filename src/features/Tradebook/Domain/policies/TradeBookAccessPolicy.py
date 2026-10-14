@@ -29,7 +29,7 @@ class TradeBookAccessPolicy:
                                                target_role=requested_role)
 
         # Dealer tried to access other dealer level previlege
-        if current_role=="DEALER" and requested_id and requested_id!=current_id:
+        if (current_role=="DEALER" and requested_id and requested_id!=current_id):
             raise UnauthorizedUserAccessException(current_user=current_id,
                                                   target_user=requested_id)
 

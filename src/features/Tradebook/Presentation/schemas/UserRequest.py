@@ -11,7 +11,7 @@ class UserRequest(BaseModel):
     groupcode: str = ""
     cursor_start: str | int | None = None
     cursor_end: str | int | None = None
-    limit: int = Field(default=10, ge=1, le=5000)
+    limit: int = Field(default=10, ge=10, le=5000)
 
     @field_validator("cursor_start", "cursor_end", mode="before")
     @classmethod

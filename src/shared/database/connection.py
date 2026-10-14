@@ -6,9 +6,13 @@ from aioodbc import Connection, Cursor, Pool
 
 from src.shared.config.settings import settings
 
-
+# The overall flow after the user calls acquire_connection for the db connectivity becomes 
+# acquire_cursor->acquire_connection->get_pool->create connection->close_connection
 class Database:
-    def __init__(self, conn_str: str):
+    """Directly communicates to the ODBC of the database provider and 
+    yields the connection,cursor,closes connection or accquire exisiting pool"""
+    
+    def __init__(self, conn_str: str): # Initialize the connection string and the connection pool which is None initially
         self.conn_str = conn_str
         self.pool: Pool | None = None
 

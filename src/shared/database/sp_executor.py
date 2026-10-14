@@ -8,7 +8,7 @@ from src.shared.database.connection import Database
 Row = dict[str, Any] # for a single row
 ResultSet = list[Row] # for all the rows in a set
 
-
+# Directly referenced by the Infrastructure level repositories,can acquire cursor and execute the db operations
 class StoredProcedureExecutor:
     def __init__(self, database: Database):
         self.database = database
@@ -21,7 +21,6 @@ class StoredProcedureExecutor:
     ) -> list[ResultSet]:
         """
         Execute a stored procedure and fetch every result set.
-
         Returns:
             [
                 [row1, row2, ...],  # Result set 1
@@ -29,7 +28,7 @@ class StoredProcedureExecutor:
             ]
         """
         async with self.database.acquire_cursor() as cursor:
-            if params:
+            if params:                                  # Parameter construction for the SQL query
                 parameter_names = ", ".join(
                     f"@{name} = ?" for name in params
                 )
@@ -38,11 +37,8 @@ class StoredProcedureExecutor:
             else:
                 sql = f"EXEC {procedure_name}"
                 values = []
-
             execute_start = time.perf_counter() # Start counter to measure just the SP execution time
-
             await cursor.execute(sql, values)
-
             execute_elapsed = time.perf_counter() - execute_start
 
             result_sets: list[ResultSet] = []
@@ -60,7 +56,6 @@ class StoredProcedureExecutor:
                         dict(zip(columns, row))
                         for row in rows
                     ])
-
                 # Advance to the next result set.
                 has_next = await cursor.nextset()
 
@@ -92,5 +87,4 @@ class StoredProcedureExecutor:
     #         procedure_name,
     #         params,
     #     )
-
     #     return result_sets[0] if result_sets else []

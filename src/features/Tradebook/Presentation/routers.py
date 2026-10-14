@@ -6,6 +6,7 @@ from src.features.Tradebook.Application.DTO.Outputs.TradeBookOutDto import Trade
 from src.features.Tradebook.Application.DTO.Inputs.TradeBookDTO import TradeBookDTO
 from src.features.Tradebook.Application.DTO.Inputs.BiDirectionalPaginationDTO import BiDirectionalPaginationDTO
 from src.features.Tradebook.Application.use_cases.get_trade import GetTradeUseCase
+from src.features.Tradebook.Domain.exceptions import TradebookException
 from src.features.Tradebook.Infrastructure.repositories.get_trade import (
     GetTradeRepository,
 )
@@ -28,5 +29,7 @@ async def get_tradebook_req(
     current_user: TokenPayload = Depends(require_roles(["ADMIN", "BROKER", "DEALER", "GROUP"])),
     use_case: GetTradeUseCase = Depends(get_trade_use_case),
 ) -> TradeBookPageOutDto:
-       
-    return await use_case.execute_get_trade(user_query, current_user)
+    try:
+        return await use_case.execute_get_trade(user_query, current_user)
+    except TradebookException as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))

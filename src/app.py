@@ -2,6 +2,7 @@ import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from scalar_fastapi import add_scalar_reference
 
 from src.features.Auth.Presentation.routes import router as AuthRouter
 from src.features.Ingestion.Presentation.routes import router as IngestionRouter
@@ -9,6 +10,12 @@ from src.features.Tradebook.Presentation.routers import router as TradebookRoute
 from src.ingestion_engine.engine import ingestion_engine
 from src.shared.config.settings import settings
 from src.shared.database.connection import db
+
+from src.features.Tradebook.Domain.exceptions import TradebookException
+from src.features.Tradebook.Presentation.exception_handlers import (
+    tradebook_exception_handler,
+)
+
 
 
 @asynccontextmanager
@@ -33,9 +40,23 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
 app.include_router(AuthRouter)
+
+app.add_exception_handler(
+    TradebookException,
+    tradebook_exception_handler,
+)
+
+add_scalar_reference(
+    app,
+    route="/documentation",
+    title="Ingestion Engine API",
+    openapi_url="/openapi.json",
+)
+
 app.include_router(TradebookRouter)
-app.include_router(IngestionRouter)
+# app.include_router(IngestionRouter)
 
 
 @app.get("/")

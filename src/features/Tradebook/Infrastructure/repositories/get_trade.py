@@ -11,7 +11,9 @@ from src.shared.database.sp_executor import StoredProcedureExecutor
 
 
 class GetTradeRepository(IGetTradesRepository):
-
+    """Inherits from the port defined in the application layer and 
+    executes the SP from the SP GATEWAY in the shared"""
+    
     def __init__(self, sp_executor: StoredProcedureExecutor):
         self.sp_executor = sp_executor
 

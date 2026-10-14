@@ -1,8 +1,5 @@
-
 from dataclasses import dataclass
-
 from src.features.Tradebook.Domain.value_objects.cursor import decode_cursor
-
 
 @dataclass
 class BiDirectionalPaginationDTO:
@@ -13,4 +10,3 @@ class BiDirectionalPaginationDTO:
     def __post_init__(self):
         self.cursor_start = decode_cursor(self.cursor_start)
         self.cursor_end = decode_cursor(self.cursor_end)
-
