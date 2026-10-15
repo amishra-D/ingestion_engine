@@ -73,9 +73,6 @@ def mock_trade_use_case():
     return AsyncMock(spec=GetTradeUseCase)
 
 
-# =====================================================================
-# 2. Auth & JWT Token Fixtures
-# =====================================================================
 @pytest.fixture
 def admin_token():
     return create_access_token(
@@ -112,9 +109,6 @@ def broker_headers(broker_token):
     return {"Authorization": f"Bearer {broker_token}"}
 
 
-# =====================================================================
-# 3. Domain Entities & Sample Data Fixtures
-# =====================================================================
 @pytest.fixture
 def sample_user_account():
     """Active user account with password 'securePassword123!'."""

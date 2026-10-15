@@ -4,7 +4,6 @@ import time
 
 from src.shared.database.connection import Database
 
-
 Row = dict[str, Any] # for a single row
 ResultSet = list[Row] # for all the rows in a set
 
@@ -13,7 +12,7 @@ class StoredProcedureExecutor:
     def __init__(self, database: Database):
         self.database = database
 
-# 1. Method used to call a stored procedure for multiple result sets
+# 1. Method used to call a stored procedure for multiple result sets    
     async def execute_result_sets(
         self,
         procedure_name: str,

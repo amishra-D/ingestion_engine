@@ -6,7 +6,7 @@ from decimal import Decimal
 from typing import Any
 
 from src.features.Tradebook.Domain.value_objects.cursor import encode_cursor
-
+from src.shared.measure_time import measure_time
 
 @dataclass
 class TradeBookOutDto:
@@ -52,6 +52,7 @@ class TradeBookPageOutDto:
     pagination: PaginationOutDto
 
     @classmethod
+    @measure_time
     def from_db(cls, results: list[list[dict[str, Any]]]) -> TradeBookPageOutDto:
         raw_trades = results[0] if len(results) > 0 else []
         metadata = results[1][0] if len(results) > 1 and results[1] else {}
