@@ -60,9 +60,7 @@ class StoredProcedureExecutor:
 
                 if not has_next:
                     break
-
             fetch_elapsed = time.perf_counter() - fetch_start # End counter to measure just the SP execution time
-
             print(
                 f"Execute time: {execute_elapsed * 1000:.2f} ms"
             )

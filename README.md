@@ -25,6 +25,12 @@ The platform documentation is organized into focused domains for engineering, da
 * **[Stored Procedure: `dbo.usp_GetTradeBook`](file:///d:/ingestion_engine/docs/Database/Stored%20Procedures/usp_GetTradeBook.md)**: Bidirectional keyset pagination, CTE query pipeline, lookahead boundary flags, and SQL test suite.
 * **[Views: `dbo.vw_TradeBook`](file:///d:/ingestion_engine/docs/Database/Views/vw_TradeBook.md)**: Data abstraction view, physical decoupling, and indexing capabilities.
 
+### 🌐 API Documentation ([`docs/API/`](file:///d:/ingestion_engine/docs/API/README.md))
+* **[API Directory Index](file:///d:/ingestion_engine/docs/API/README.md)**: Catalog of all endpoints, authentication scheme, and links to interactive UIs ([Scalar `/documentation`](http://localhost:8000/documentation) & [Swagger `/docs`](http://localhost:8000/docs)).
+* **[`POST /auth/login`](file:///d:/ingestion_engine/docs/API/Auth/login.md)**: User authentication, SHA-512 credential check, and 8-hour JWT issuance.
+* **[`GET /auth/me`](file:///d:/ingestion_engine/docs/API/Auth/me.md)**: Caller profile and claim extraction from active Bearer token.
+* **[`POST /tradebook/get-tradebook`](file:///d:/ingestion_engine/docs/API/Tradebook/get_tradebook.md)**: Keyset-paginated trade query with monotonic Base64 cursors and RBAC partitioning.
+
 ---
 
 ## 2. Architecture Quick Summary

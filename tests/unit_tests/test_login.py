@@ -97,16 +97,16 @@ async def test_login_route_success(mock_login_use_case: AsyncMock):
         access_token="mock.jwt.token",
         token_type="bearer",
         user_id=1,
-        username="admin",
+        username="admin001",
         role="ADMIN",
     )
 
-    payload = LoginRequest(username="admin", password="password123")
+    payload = LoginRequest(username="admin001", password="password123")
     response = await login(payload=payload, use_case=mock_login_use_case)
 
     assert response.access_token == "mock.jwt.token"
     assert response.token_type == "bearer"
-    assert response.username == "admin"
+    assert response.username == "admin001"
     assert response.role == "ADMIN"
     assert response.user_id == 1
     mock_login_use_case.execute_login.assert_called_once()
@@ -120,7 +120,7 @@ async def test_login_route_invalid_credentials_raises_http_401(mock_login_use_ca
         "Invalid username or password"
     )
 
-    payload = LoginRequest(username="admin", password="badPassword")
+    payload = LoginRequest(username="admin001", password="badPassword")
 
     with pytest.raises(HTTPException) as exc_info:
         await login(payload=payload, use_case=mock_login_use_case)
