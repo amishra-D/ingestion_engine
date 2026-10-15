@@ -139,19 +139,3 @@ return TradeBookPageOutDto.from_db(result_sets)
 ```
 
 ---
-
-## 5. Built-in SQL Privilege Test Suite
-
-The companion script in [`sql/SP_Query.sql`](file:///d:/ingestion_engine/sql/SP_Query.sql#L176-L321) includes an exhaustive 9-part test suite for validating permissions directly in SSMS:
-
-| Test Group | Tests Included | Expected Invariant |
-| :--- | :--- | :--- |
-| **1. Admin Privilege Tests** | 1A (Unrestricted), 1B (Dealer filter), 1C (Broker filter), 1D (Group filter) | Admin can access all records or impersonate any hierarchy level. |
-| **2. Broker Privilege Tests** | 2A (Account 90068), 2B (Account 90069), 2C (Dealer under account) | Strictly restricted to specified `AccountCode`. |
-| **3. Dealer Privilege Tests** | 3A (Dealer SUP), 3B (Dealer D001), 3C (Missing UserID check) | Returns only records where `UserID = @UserId`. Missing UserID returns 0 rows. |
-| **4. Group Privilege Tests** | 4A (Group HO), 4B (Group GRP2), 4C (Non-existent group) | Restricts to dealers and accounts mapped in `Config_DealerMap` for that group. |
-| **5. Keyset Pagination Tests**| 5A (Initial Load), 5B (Forward Next Page), 5C (Backward Prev Page) | Validates cursor transitions and boundary lookahead flags. |
-| **6. Privilege Scope Audits** | Direct `SELECT` audits of dealer and account distributions | Audits data distribution across brokers and dealers. |
-| **7. Negative Boundary Assertions** | Anti-snooping checks (Dealer SUP seeking D001; Broker 90068 seeking 90069) | **Must return exactly 0 rows**. |
-| **8. Mathematical Reconciliation** | Sum of partitioned counts vs. firm total | Ensures $Count(HO) + Count(GRP2) = Total$, confirming zero data leakage or loss. |
-| **9. Automated Self-Checking Harness** | Assertions printing `[PASS]` / `[FAIL]` | Automated regression script for database deployments. |

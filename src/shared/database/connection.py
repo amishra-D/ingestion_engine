@@ -12,17 +12,19 @@ class Database:
     """Directly communicates to the ODBC of the database provider and 
     yields the connection,cursor,closes connection or accquire exisiting pool"""
     
-    def __init__(self, conn_str: str): # Initialize the connection string and the connection pool which is None initially
+    def __init__(self, conn_str: str,min_pool_size:int,max_pool_size:int): # Initialize the connection string and the connection pool which is None initially
         self.conn_str = conn_str
         self.pool: Pool | None = None
+        self.min_pool_size : int = min_pool_size
+        self.max_pool_size :int =max_pool_size 
 
     async def create_connection(self) -> None:
         """Initializes the aioodbc connection pool."""
         if self.pool is None:
             self.pool = await aioodbc.create_pool(
                 dsn=self.conn_str,
-                minsize=5,
-                maxsize=20,
+                minsize=self.min_pool_size,
+                maxsize=self.max_pool_size,
                 autocommit=True
             )
 
@@ -53,4 +55,4 @@ class Database:
             yield cursor
 
 
-db = Database(settings.DATABASE_URI)
+db = Database(settings.DATABASE_URI,settings.MIN_POOL_SIZE,settings.MAX_POOL_SIZE)
