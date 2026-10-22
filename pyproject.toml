@@ -21,6 +21,7 @@ dependencies = [
     "ruff>=0.16.10",
     "scalar-fastapi>=1.9.1",
     "sqlalchemy>=2.1.4",
+    "testcontainers[mssql]>=4.15.0",
     "uvicorn>=0.54.0",
 ]
 
@@ -33,3 +34,6 @@ build-backend = "uv_build"
 
 [tool.ruff.lint]
 ignore = ["B008", "RUF012"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."] 

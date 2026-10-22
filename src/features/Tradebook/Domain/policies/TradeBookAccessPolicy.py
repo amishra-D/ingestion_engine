@@ -18,7 +18,7 @@ class TradeBookAccessPolicy:
                           current_id:str,
                           requested_id:str,
                           account_code:str|None,
-                          group_code:str|None,)->QueryScope:
+                          group_code:str|None)->QueryScope:
         
         current_role= current_role.upper()
         requested_role=requested_role.upper() if requested_role else current_role
@@ -36,6 +36,7 @@ class TradeBookAccessPolicy:
         effective_role = requested_role if current_role == "ADMIN" else current_role
         effective_user_id = requested_id if current_role == "ADMIN" else current_id
 
+        # Domain level DTO
         return QueryScope(effective_role=effective_role,
                           effective_user_id=effective_user_id,
                           group_code=group_code,

@@ -111,7 +111,7 @@ async def test_get_tradebook_route_success(mock_trade_use_case: AsyncMock):
 
 
 @pytest.mark.asyncio
-async def test_get_tradebook_route_catches_tradebook_exception_as_403(mock_trade_use_case):
+async def test_get_tradebook_route_catches_tradebook_exception_as_403(mock_trade_use_case: AsyncMock):
     """Route catches TradebookException and translates to HTTP 403 Forbidden."""
     mock_trade_use_case.execute_get_trade.side_effect = PrivilegeEscalationException(
         current_role="DEALER", target_role="ADMIN"
