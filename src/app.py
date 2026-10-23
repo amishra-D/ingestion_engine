@@ -8,7 +8,7 @@ from src.features.Auth.Presentation.routes import router as AuthRouter
 from src.features.Ingestion.Presentation.routes import router as IngestionRouter
 from src.features.Tradebook.Presentation.routers import router as TradebookRouter
 from src.ingestion_engine.engine import ingestion_engine
-from src.shared.config.settings import settings
+from src.shared.config.settings import get_settings
 from src.shared.database.connection import db
 
 from src.features.Tradebook.Domain.exceptions import TradebookException
@@ -22,6 +22,7 @@ from src.features.Tradebook.Presentation.exception_handlers import (
 async def lifespan(app: FastAPI):
     await db.create_connection()
     ingestion_task = None
+    settings=get_settings()
     if settings.AUTO_INGESTION:
         await ingestion_engine.initialize()
         ingestion_task = asyncio.create_task(

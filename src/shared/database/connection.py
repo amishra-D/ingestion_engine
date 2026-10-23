@@ -4,8 +4,9 @@ from contextlib import asynccontextmanager
 import aioodbc
 from aioodbc import Connection, Cursor, Pool
 
-from src.shared.config.settings import settings
+from src.shared.config.settings import get_settings
 
+settings=get_settings()
 # The overall flow after the user calls acquire_connection for the db connectivity becomes 
 # acquire_cursor->acquire_connection->get_pool->create connection->close_connection
 class Database:
