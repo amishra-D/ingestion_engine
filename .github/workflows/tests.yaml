@@ -10,6 +10,14 @@ permissions:
 jobs:
     tests:
         runs-on: ubuntu-latest
+        env:
+            DATABASE_URI: ${{secrets.DATABASE_URI}}
+            MIN_POOL_SIZE: ${{secrets.MIN_POOL_SIZE}}
+            MAX_POOL_SIZE: ${{secrets.MAX_POOL_SIZE}}
+            ALGORITHM: ${{secrets.ALGORITHM}}
+            SECRET_KEY: ${{secrets.SECRET_KEY}}
+            AUTO_INGESTION: ${{secrets.AUTO_INGESTION}}
+            INGESTION_INTERVAL: ${{secrets.INGESTION_INTERVAL}}
         steps:
             - name: checkout
               uses: actions/checkout@v6
