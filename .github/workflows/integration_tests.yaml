@@ -113,14 +113,17 @@ jobs:
         run: uv run pytest
 
       - name: Set up Node.js
+        if: ${{ always() }}
         uses: actions/setup-node@v6
         with:
           node-version: 22
 
       - name: Install Newman
+        if: ${{ always() }}
         run: npm install -g newman
 
       - name: Start server
+        if: ${{ always() }}
         run: |
           uv run uvicorn app:app \
             --host 0.0.0.0 \
@@ -128,6 +131,7 @@ jobs:
           echo $! > server.pid
 
       - name: Wait for API
+        if: ${{ always() }}
         run: |
           for i in $(seq 1 30); do
             if curl --fail --silent \
@@ -144,6 +148,7 @@ jobs:
           exit 1
 
       - name: Run Postman collection with Newman
+        if: ${{ always() }}
         env:
           TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
         run: |
