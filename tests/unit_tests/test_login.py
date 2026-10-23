@@ -61,9 +61,8 @@ async def test_login_use_case_wrong_password_raises_exception(
 
 
 @pytest.mark.asyncio
-async def test_login_use_case_user_not_found_raises_exception(
-    mock_login_repo: AsyncMock, mock_token_service: AsyncMock
-):
+async def test_login_use_case_user_not_found_raises_exception(mock_login_repo: AsyncMock,
+                                                             mock_token_service: AsyncMock):
     """UseCase raises InvalidCredentialsException when user is not found in database."""
 
     mock_login_repo.get_by_username.return_value = None

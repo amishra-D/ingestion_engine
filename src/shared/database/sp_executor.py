@@ -68,20 +68,30 @@ class StoredProcedureExecutor:
                 f"Fetch and result-set processing time: "
                 f"{fetch_elapsed * 1000:.2f} ms"
             )
-
             return result_sets
 
-# 1. Method used to call a stored procedure for a single result sets
-    # async def execute(
-    #     self,
-    #     procedure_name: str,
-    #     params: dict[str, Any] | None = None,
-    # ) -> ResultSet:
-    #     """
-    #     Backward-compatible method: return the first row set.
-    #     """
-    #     result_sets = await self.execute_result_sets(
-    #         procedure_name,
-    #         params,
-    #     )
-    #     return result_sets[0] if result_sets else []
+# 2. Method used to call a stored procedure for single result sets        
+async def execute(self,procedure_name:str,params:dict[str,Any] | None = None)-> ResultSet | None:
+    async with self.database.acquire_cursor() as cursor:
+        if params:                                  # Parameter construction for the SQL query
+            parameter_names = ", ".join(
+                f"@{name} = ?" for name in params
+            )
+            sql = f"EXEC {procedure_name} {parameter_names}"
+            values = list(params.values())
+        else:
+            sql = f"EXEC {procedure_name}"
+            values = []
+        result_sets:list[ResultSet]=[]
+        await cursor.execute(sql,values)
+        if cursor.decription is None:
+            return None
+        columns = [
+            column[0] for column in cursor.description
+        ]
+        rows = await cursor.fetchall()
+
+        result_sets.append([
+            dict(zip(columns, row))
+            for row in rows
+        ])

@@ -28,7 +28,7 @@ from src.features.Tradebook.Application.ports.GetTradesRepository import (
     IGetTradesRepository,
 )
 from src.features.Tradebook.Application.use_cases.get_trade import GetTradeUseCase
-from src.shared.security.jwt import TokenPayload, create_access_token
+from src.shared.security.jwt import create_access_token
 
 
 @pytest.fixture
@@ -102,17 +102,17 @@ def broker_token():
 
 
 @pytest.fixture
-def admin_headers(admin_token):
+def admin_headers(admin_token: str):
     return {"Authorization": f"Bearer {admin_token}"}
 
 
 @pytest.fixture
-def dealer_headers(dealer_token):
+def dealer_headers(dealer_token: str):
     return {"Authorization": f"Bearer {dealer_token}"}
 
 
 @pytest.fixture
-def broker_headers(broker_token):
+def broker_headers(broker_token: str):
     return {"Authorization": f"Bearer {broker_token}"}
 
 

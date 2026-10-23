@@ -131,3 +131,50 @@ async def test_get_tradebook_route_catches_tradebook_exception_as_403(mock_trade
 
     assert exc_info.value.status_code == 403
     assert "Privilege escalation denied" in exc_info.value.detail
+
+
+@pytest.mark.asyncio
+async def test_get_trade_use_case_broker_views_all_dealers(mock_trade_repo: AsyncMock):
+    """Broker querying an account code does not have username injected as dealer ID."""
+    use_case = GetTradeUseCase(repository=mock_trade_repo)
+
+    current_user = TokenPayload(
+        sub="broker1", user_id=4, role="BROKER", exp=datetime.now(UTC)
+    )
+    query = UserRequest(role="BROKER", accountcode="90068", limit=10)
+
+    await use_case.execute_get_trade(query, current_user)
+
+    mock_trade_repo.execute_get_trade.assert_called_once()
+    dto = mock_trade_repo.execute_get_trade.call_args[0][0]
+    assert dto.user.role == "BROKER"
+    assert dto.user.accountcode == "90068"
+    assert dto.user.userid is None
+
+
+@pytest.mark.asyncio
+async def test_get_trade_use_case_broker_views_specific_dealer(mock_trade_repo: AsyncMock):
+    """Broker querying a specific dealer passes that dealer's ID to repository."""
+    use_case = GetTradeUseCase(repository=mock_trade_repo)
+
+    current_user = TokenPayload(
+        sub="broker1", user_id=4, role="BROKER", exp=datetime.now(UTC)
+    )
+    query = UserRequest(role="BROKER", accountcode="90068", userid="SUP", limit=10)
+
+    await use_case.execute_get_trade(query, current_user)
+
+    mock_trade_repo.execute_get_trade.assert_called_once()
+    dto = mock_trade_repo.execute_get_trade.call_args[0][0]
+    assert dto.user.role == "BROKER"
+    assert dto.user.accountcode == "90068"
+    assert dto.user.userid == "SUP"
+
+
+def test_user_request_field_aliases():
+    """UserRequest accepts both snake_case and lowercase field names."""
+    req = UserRequest(accountcode="90068", userid="SUP", groupcode="HO")
+    assert req.accountcode == "90068"
+    assert req.userid == "SUP"
+    assert req.groupcode == "HO"
+
