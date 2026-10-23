@@ -95,7 +95,7 @@ jobs:
             -P "$TEST_DB_PASSWORD" \
             -C -b \
             -d friskit_sample \
-            -i src/sql/scripts.sql
+            -i sql/scripts.sql
 
       - name: Lint
         run: uv run ruff check .
