@@ -17,13 +17,19 @@ from src.shared.security.jwt import TokenPayload
 
 
 @pytest.mark.asyncio
-async def test_login_use_case_success(mock_login_repo: AsyncMock, mock_token_service: AsyncMock, sample_user_account: UserAccount):
+async def test_login_use_case_success(
+    mock_login_repo: AsyncMock,
+    mock_token_service: AsyncMock,
+    sample_user_account: UserAccount,
+):
     """UseCase successfully verifies password, updates last login, and returns token."""
 
     # Arrange
     mock_login_repo.get_by_username.return_value = sample_user_account
     mock_token_service.generate_token.return_value = "fake.jwt.token"
-    use_case = LoginUseCase(repository=mock_login_repo, token_service=mock_token_service)
+    use_case = LoginUseCase(
+        repository=mock_login_repo, token_service=mock_token_service
+    )
 
     dto = LoginInputDTO(username="admin", password="securePassword123!")
 
@@ -44,12 +50,16 @@ async def test_login_use_case_success(mock_login_repo: AsyncMock, mock_token_ser
 
 @pytest.mark.asyncio
 async def test_login_use_case_wrong_password_raises_exception(
-    mock_login_repo: AsyncMock, mock_token_service: AsyncMock, sample_user_account: UserAccount
+    mock_login_repo: AsyncMock,
+    mock_token_service: AsyncMock,
+    sample_user_account: UserAccount,
 ):
     """UseCase raises InvalidCredentialsException if password does not match hash."""
 
     mock_login_repo.get_by_username.return_value = sample_user_account
-    use_case = LoginUseCase(repository=mock_login_repo, token_service=mock_token_service)
+    use_case = LoginUseCase(
+        repository=mock_login_repo, token_service=mock_token_service
+    )
 
     dto = LoginInputDTO(username="admin", password="wrongPassword")
 
@@ -61,12 +71,15 @@ async def test_login_use_case_wrong_password_raises_exception(
 
 
 @pytest.mark.asyncio
-async def test_login_use_case_user_not_found_raises_exception(mock_login_repo: AsyncMock,
-                                                             mock_token_service: AsyncMock):
+async def test_login_use_case_user_not_found_raises_exception(
+    mock_login_repo: AsyncMock, mock_token_service: AsyncMock
+):
     """UseCase raises InvalidCredentialsException when user is not found in database."""
 
     mock_login_repo.get_by_username.return_value = None
-    use_case = LoginUseCase(repository=mock_login_repo, token_service=mock_token_service)
+    use_case = LoginUseCase(
+        repository=mock_login_repo, token_service=mock_token_service
+    )
 
     dto = LoginInputDTO(username="unknown_user", password="anyPassword")
 
@@ -76,11 +89,15 @@ async def test_login_use_case_user_not_found_raises_exception(mock_login_repo: A
 
 @pytest.mark.asyncio
 async def test_login_use_case_inactive_user_raises_exception(
-    mock_login_repo: AsyncMock, mock_token_service: AsyncMock, sample_inactive_user: UserAccount
+    mock_login_repo: AsyncMock,
+    mock_token_service: AsyncMock,
+    sample_inactive_user: UserAccount,
 ):
     """UseCase raises InactiveUserException when account isActive is False."""
     mock_login_repo.get_by_username.return_value = sample_inactive_user
-    use_case = LoginUseCase(repository=mock_login_repo, token_service=mock_token_service)
+    use_case = LoginUseCase(
+        repository=mock_login_repo, token_service=mock_token_service
+    )
 
     dto = LoginInputDTO(username="inactive_trader", password="securePassword123!")
 
@@ -112,9 +129,11 @@ async def test_login_route_success(mock_login_use_case: AsyncMock):
 
 
 @pytest.mark.asyncio
-async def test_login_route_invalid_credentials_raises_http_401(mock_login_use_case: AsyncMock):
+async def test_login_route_invalid_credentials_raises_http_401(
+    mock_login_use_case: AsyncMock,
+):
     """Route converts domain InvalidCredentialsException into HTTP 401 Unauthorized."""
-    
+
     mock_login_use_case.execute_login.side_effect = InvalidCredentialsException(
         "Invalid username or password"
     )
@@ -131,7 +150,9 @@ async def test_login_route_invalid_credentials_raises_http_401(mock_login_use_ca
 
 
 @pytest.mark.asyncio
-async def test_login_route_inactive_user_raises_http_403(mock_login_use_case: AsyncMock):
+async def test_login_route_inactive_user_raises_http_403(
+    mock_login_use_case: AsyncMock,
+):
     """Route converts domain InactiveUserException into HTTP 403 Forbidden."""
 
     mock_login_use_case.execute_login.side_effect = InactiveUserException(
@@ -152,6 +173,7 @@ async def test_get_my_profile_route_returns_token_payload():
     """Route directly returns the injected TokenPayload."""
 
     from datetime import UTC, datetime
+
     token_user = TokenPayload(
         sub="admin",
         user_id=1,

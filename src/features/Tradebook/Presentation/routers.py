@@ -2,9 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 import time
 from src.features.Tradebook.Presentation.schemas.UserRequest import UserRequest
 from src.features.Tradebook.Application.DTO.Inputs.UserdataDTO import UserDataDTO
-from src.features.Tradebook.Application.DTO.Outputs.TradeBookOutDto import TradeBookPageOutDto
+from src.features.Tradebook.Application.DTO.Outputs.TradeBookOutDto import (
+    TradeBookPageOutDto,
+)
 from src.features.Tradebook.Application.DTO.Inputs.TradeBookDTO import TradeBookDTO
-from src.features.Tradebook.Application.DTO.Inputs.BiDirectionalPaginationDTO import BiDirectionalPaginationDTO
+from src.features.Tradebook.Application.DTO.Inputs.BiDirectionalPaginationDTO import (
+    BiDirectionalPaginationDTO,
+)
 from src.features.Tradebook.Application.use_cases.get_trade import GetTradeUseCase
 from src.features.Tradebook.Domain.exceptions import TradebookException
 from src.features.Tradebook.Infrastructure.repositories.get_trade import (
@@ -23,10 +27,14 @@ def get_trade_use_case() -> GetTradeUseCase:
     return GetTradeUseCase(repository)
 
 
-@router.post("/get-tradebook", response_model=TradeBookPageOutDto, status_code=status.HTTP_200_OK)
+@router.post(
+    "/get-tradebook", response_model=TradeBookPageOutDto, status_code=status.HTTP_200_OK
+)
 async def get_tradebook_req(
     user_query: UserRequest,
-    current_user: TokenPayload = Depends(require_roles(["ADMIN", "BROKER", "DEALER", "GROUP"])),
+    current_user: TokenPayload = Depends(
+        require_roles(["ADMIN", "BROKER", "DEALER", "GROUP"])
+    ),
     use_case: GetTradeUseCase = Depends(get_trade_use_case),
 ) -> TradeBookPageOutDto:
     try:

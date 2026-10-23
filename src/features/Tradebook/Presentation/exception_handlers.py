@@ -11,7 +11,7 @@ from src.features.Tradebook.Domain.exceptions import (
 def map_tradebook_exception(
     exc: TradebookException,
 ) -> tuple[int, str, str]:
-    
+
     if isinstance(exc, PrivilegeEscalationException):
         return (
             403,
@@ -31,6 +31,7 @@ def map_tradebook_exception(
         "TRADEBOOK_ERROR",
         str(exc),
     )
+
 
 async def tradebook_exception_handler(
     request: Request,

@@ -6,18 +6,22 @@ from aioodbc import Connection, Cursor, Pool
 
 from src.shared.config.settings import get_settings
 
-settings=get_settings()
-# The overall flow after the user calls acquire_connection for the db connectivity becomes 
+settings = get_settings()
+
+
+# The overall flow after the user calls acquire_connection for the db connectivity becomes
 # acquire_cursor->acquire_connection->get_pool->create connection->close_connection
 class Database:
-    """Directly communicates to the ODBC of the database provider and 
+    """Directly communicates to the ODBC of the database provider and
     yields the connection,cursor,closes connection or accquire exisiting pool"""
-    
-    def __init__(self, conn_str: str,min_pool_size:int,max_pool_size:int): # Initialize the connection string and the connection pool which is None initially
+
+    def __init__(
+        self, conn_str: str, min_pool_size: int, max_pool_size: int
+    ):  # Initialize the connection string and the connection pool which is None initially
         self.conn_str = conn_str
         self.pool: Pool | None = None
-        self.min_pool_size : int = min_pool_size
-        self.max_pool_size :int =max_pool_size 
+        self.min_pool_size: int = min_pool_size
+        self.max_pool_size: int = max_pool_size
 
     async def create_connection(self) -> None:
         """Initializes the aioodbc connection pool."""
@@ -26,7 +30,7 @@ class Database:
                 dsn=self.conn_str,
                 minsize=self.min_pool_size,
                 maxsize=self.max_pool_size,
-                autocommit=True
+                autocommit=True,
             )
 
     async def close_connection(self) -> None:
@@ -56,4 +60,4 @@ class Database:
             yield cursor
 
 
-db = Database(settings.DATABASE_URI,settings.MIN_POOL_SIZE,settings.MAX_POOL_SIZE)
+db = Database(settings.DATABASE_URI, settings.MIN_POOL_SIZE, settings.MAX_POOL_SIZE)

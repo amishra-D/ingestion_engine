@@ -36,7 +36,7 @@ async def test_get_trade_use_case_success(mock_trade_repo: AsyncMock):
     assert len(result.data) == 1
     assert result.data[0].trade_id == 5609
     assert result.pagination.cursor_start == 5609
-    mock_trade_repo.execute_get_trade.assert_called_once()  #Infrastructure layer repository calling
+    mock_trade_repo.execute_get_trade.assert_called_once()  # Infrastructure layer repository calling
 
 
 @pytest.mark.asyncio
@@ -111,7 +111,9 @@ async def test_get_tradebook_route_success(mock_trade_use_case: AsyncMock):
 
 
 @pytest.mark.asyncio
-async def test_get_tradebook_route_catches_tradebook_exception_as_403(mock_trade_use_case: AsyncMock):
+async def test_get_tradebook_route_catches_tradebook_exception_as_403(
+    mock_trade_use_case: AsyncMock,
+):
     """Route catches TradebookException and translates to HTTP 403 Forbidden."""
     mock_trade_use_case.execute_get_trade.side_effect = PrivilegeEscalationException(
         current_role="DEALER", target_role="ADMIN"
@@ -153,7 +155,9 @@ async def test_get_trade_use_case_broker_views_all_dealers(mock_trade_repo: Asyn
 
 
 @pytest.mark.asyncio
-async def test_get_trade_use_case_broker_views_specific_dealer(mock_trade_repo: AsyncMock):
+async def test_get_trade_use_case_broker_views_specific_dealer(
+    mock_trade_repo: AsyncMock,
+):
     """Broker querying a specific dealer passes that dealer's ID to repository."""
     use_case = GetTradeUseCase(repository=mock_trade_repo)
 
@@ -177,4 +181,3 @@ def test_user_request_field_aliases():
     assert req.accountcode == "90068"
     assert req.userid == "SUP"
     assert req.groupcode == "HO"
-

@@ -1,15 +1,17 @@
-
 from dataclasses import dataclass
 from src.features.Tradebook.Domain.exceptions import (
     PrivilegeEscalationException,
     UnauthorizedUserAccessException,
 )
+
+
 @dataclass(frozen=True)
 class QueryScope:
     effective_role: str
     effective_user_id: str | None
     group_code: str | None
     account_code: str | None
+
 
 class TradeBookAccessPolicy:
     @staticmethod

@@ -7,6 +7,7 @@ from src.features.Auth.Domain.exceptions import (
     InvalidCredentialsException,
 )
 
+
 class LoginUseCase:
     def __init__(
         self,

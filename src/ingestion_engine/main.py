@@ -75,7 +75,12 @@ async def async_main(args: argparse.Namespace) -> None:
 
                 if args.show_api_format:
                     print("  --> API Response Format:")
-                    print("     ", json.dumps(api_format_output, indent=2).replace("\n", "\n      "))
+                    print(
+                        "     ",
+                        json.dumps(api_format_output, indent=2).replace(
+                            "\n", "\n      "
+                        ),
+                    )
 
             if args.count and inserted_count >= args.count:
                 print(f"\n[OK] Reached target count of {args.count} trades.")

@@ -7,11 +7,15 @@ import pytest
 import pyodbc
 import pathlib
 
-from typing import Generator,AsyncGenerator,Any
+from typing import Generator, AsyncGenerator, Any
 from testcontainers.community.mssql import SqlServerContainer
 
-from src.features.Auth.Infrastructure.repositories.LoginRepository import LoginRepository
-from src.features.Tradebook.Infrastructure.repositories.get_trade import GetTradeRepository
+from src.features.Auth.Infrastructure.repositories.LoginRepository import (
+    LoginRepository,
+)
+from src.features.Tradebook.Infrastructure.repositories.get_trade import (
+    GetTradeRepository,
+)
 from src.shared.database.connection import Database
 from src.shared.database.sp_executor import StoredProcedureExecutor
 
@@ -82,23 +86,17 @@ def mock_trade_use_case():
 
 @pytest.fixture
 def admin_token():
-    return create_access_token(
-        username="admin", user_id=1, role="ADMIN"
-    )
+    return create_access_token(username="admin", user_id=1, role="ADMIN")
 
 
 @pytest.fixture
 def dealer_token():
-    return create_access_token(
-        username="SUP", user_id=2, role="DEALER"
-    )
+    return create_access_token(username="SUP", user_id=2, role="DEALER")
 
 
 @pytest.fixture
 def broker_token():
-    return create_access_token(
-        username="broker1", user_id=4, role="BROKER"
-    )
+    return create_access_token(username="broker1", user_id=4, role="BROKER")
 
 
 @pytest.fixture
@@ -147,6 +145,7 @@ def sample_inactive_user():
         last_login_at=datetime.now(UTC),
     )
 
+
 ## Configurations for integration tests
 
 # Path references
@@ -179,7 +178,14 @@ def execute_sql_batches(conn: pyodbc.Connection, raw_script: str) -> None:
             cursor.execute(statement)
         except pyodbc.Error as exc:
             # Skip non-critical database-level tuning options unsupported by Linux container
-            if any(opt in statement for opt in ("FILESTREAM", "COMPATIBILITY_LEVEL", "ACCELERATED_DATABASE_RECOVERY")):
+            if any(
+                opt in statement
+                for opt in (
+                    "FILESTREAM",
+                    "COMPATIBILITY_LEVEL",
+                    "ACCELERATED_DATABASE_RECOVERY",
+                )
+            ):
                 continue
             raise RuntimeError(f"Failed to execute batch:\n{statement}") from exc
     cursor.close()

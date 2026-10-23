@@ -120,6 +120,7 @@ print(mock_login_repo.get_by_username.call_args)
   ```python
   import pytest
 
+
   @pytest.mark.asyncio
   async def test_my_async_code():
       result = await some_async_call()
@@ -139,13 +140,14 @@ import pytest
 from src.features.MyFeature.Application.DTO.Inputs.MyInputDTO import MyInputDTO
 from src.features.MyFeature.Application.use_cases.MyUseCase import MyUseCase
 
+
 # 2. Decorate with pytest.mark.asyncio
 @pytest.mark.asyncio
 async def test_my_use_case_success():
     # 3. Arrange: Setup mock repository & ports
     mock_repo = AsyncMock()
     mock_repo.get_data.return_value = {"id": 1, "status": "active"}
-    
+
     use_case = MyUseCase(repository=mock_repo)
     dto = MyInputDTO(item_id=1)
 

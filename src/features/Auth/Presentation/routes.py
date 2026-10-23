@@ -30,8 +30,7 @@ def get_login_use_case() -> LoginUseCase:
 
 @router.post("/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)
 async def login(
-    payload: LoginRequest,
-    use_case: LoginUseCase = Depends(get_login_use_case)
+    payload: LoginRequest, use_case: LoginUseCase = Depends(get_login_use_case)
 ):
     try:
         dto = LoginInputDTO(username=payload.username, password=payload.password)
@@ -57,8 +56,6 @@ async def login(
 
 
 @router.get("/me", response_model=TokenPayload)
-async def get_my_profile(
-    current_user: TokenPayload = Depends(get_current_user)
-):
+async def get_my_profile(current_user: TokenPayload = Depends(get_current_user)):
     """Returns the authenticated user details from the token."""
     return current_user

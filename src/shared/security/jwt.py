@@ -6,19 +6,18 @@ from pydantic import BaseModel
 
 from src.shared.config.settings import get_settings
 
-settings=get_settings()
+settings = get_settings()
+
+
 class TokenPayload(BaseModel):
-    sub: str          # Username
-    user_id: int      # UserId
-    role: str         # Role ('ADMIN', 'BROKER', 'DEALER', 'GROUP')
+    sub: str  # Username
+    user_id: int  # UserId
+    role: str  # Role ('ADMIN', 'BROKER', 'DEALER', 'GROUP')
     exp: datetime
 
 
 def create_access_token(
-    user_id: int,
-    username: str,
-    role: str,
-    expires_delta: timedelta | None = None
+    user_id: int, username: str, role: str, expires_delta: timedelta | None = None
 ) -> str:
     now = datetime.now(UTC)
     expire = now + (expires_delta or timedelta(hours=8))
@@ -36,9 +35,7 @@ def create_access_token(
 def decode_access_token(token: str) -> TokenPayload:
     try:
         decoded = jwt.decode(
-            token,
-            settings.SECRET_KEY,
-            algorithms=[settings.ALGORITHM]
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         return TokenPayload(**decoded)
     except jwt.PyJWTError as e:

@@ -13,9 +13,10 @@ from src.shared.security.jwt import TokenPayload, decode_access_token
 
 bearer_scheme = HTTPBearer(auto_error=True)
 
+
 # Central dependency to get the current user payload from the accesstoken
 async def get_current_user(
-    credentials: Annotated[HTTPAuthorizationCredentials, Depends(bearer_scheme)]
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(bearer_scheme)],
 ) -> TokenPayload:
     """Extracts, verifies JWT token and returns authenticated user payload."""
     try:
@@ -28,11 +29,13 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         ) from exc
 
+
 # Checks the role based on the given access token
 def require_roles(allowed_roles: Sequence[str]):
     """Role-based authorization dependency factory."""
+
     async def role_checker(
-        user: Annotated[TokenPayload, Depends(get_current_user)]
+        user: Annotated[TokenPayload, Depends(get_current_user)],
     ) -> TokenPayload:
         if user.role.upper() not in [r.upper() for r in allowed_roles]:
             raise HTTPException(
@@ -40,11 +43,13 @@ def require_roles(allowed_roles: Sequence[str]):
                 detail=f"Access denied. User role '{user.role}' not permitted.",
             )
         return user
+
     return role_checker
+
 
 # Fetch the user role based on the get current user dependency
 async def get_user_role(
-    user: Annotated[TokenPayload, Depends(get_current_user)]
+    user: Annotated[TokenPayload, Depends(get_current_user)],
 ) -> str:
     """Returns the authenticated user's role directly."""
     return user.role

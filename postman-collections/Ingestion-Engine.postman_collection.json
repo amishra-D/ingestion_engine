@@ -1,0 +1,256 @@
+{
+  "info": {
+    "_postman_id": "655e081c-4f47-4a14-99e2-50f6b8cbcfd3",
+    "name": "Ingestion-Engine",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "43784525",
+    "_collection_link": "https://go.postman.co/collection/43784525-655e081c-4f47-4a14-99e2-50f6b8cbcfd3?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Check login status matches expectation (default 200)\r\nconst expectedLoginStatus = pm.iterationData.get(\"login_expected_status\") || 200;\r\n\r\npm.test(`[Auth] Login status code is ${expectedLoginStatus}`, function () {\r\n    pm.response.to.have.status(expectedLoginStatus);\r\n});\r\n\r\n// If login succeeded, automatically save access_token to collection variables\r\nif (pm.response.code === 200) {\r\n    const data = pm.response.json();\r\n    pm.collectionVariables.set(\"access_token\", data.access_token);\r\n    pm.collectionVariables.set(\"current_user\", data.username);\r\n    pm.collectionVariables.set(\"current_role\", data.role);\r\n    console.log(`Saved token for ${data.username} (${data.role})`);\r\n}\r\n"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"username\":{{username}},\r\n    \"password\":{{password}}\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/auth/login",
+          "host": [
+            "{{BASE_URL}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get current user",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code==200){\r\n    const data = pm.response.json();\r\n    pm.collectionVariables.set(\"userid\",data.user_id);\r\n    pm.collectionVariables.set(\"role\",data.role);\r\n}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/auth/me",
+          "host": [
+            "{{BASE_URL}}"
+          ],
+          "path": [
+            "auth",
+            "me"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Tradebook",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"role\": {{role}},\r\n  \"userid\": {{userid}},\r\n  \"accountcode\": {{accountcode}},\r\n  \"groupcode\": {{groupcode}},\r\n  \"cursor_start\": {{cursor_start}},\r\n  \"cursor_end\": {{cursor_end}},\r\n  \"limit\": {{limit}}\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{}/tradebook/get-tradebook",
+          "host": [
+            "{}"
+          ],
+          "path": [
+            "tradebook",
+            "get-tradebook"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Forward Pagination",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "\n{\n  \"role\": \"{{role}}\",\n  \"userid\": \"{{userid}}\",\n  \"accountcode\": \"{{accountcode}}\",\n  \"groupcode\": \"{{groupcode}}\",\n  \"cursor_start\": \"{{cursor_start}}\",\n  \"cursor_end\": \"\",\n  \"limit\": {{limit}}\n}\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/tradebook/get-tradebook",
+          "host": [
+            "{{BASE_URL}}"
+          ],
+          "path": [
+            "tradebook",
+            "get-tradebook"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Backward Pagination",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"role\": \"{{role}}\",\r\n  \"userid\": \"{{userid}}\",\r\n  \"accountcode\": \"{{accountcode}}\",\r\n  \"groupcode\": \"{{groupcode}}\",\r\n  \"cursor_start\": \"\",\r\n  \"cursor_end\": \"{{cursor_end}}\",\r\n  \"limit\": {{limit}}\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/tradebook/get-tradebook",
+          "host": [
+            "{{BASE_URL}}"
+          ],
+          "path": [
+            "tradebook",
+            "get-tradebook"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": ""
+    },
+    {
+      "key": "password",
+      "value": ""
+    },
+    {
+      "key": "username",
+      "value": ""
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "current_user",
+      "value": ""
+    },
+    {
+      "key": "current_role",
+      "value": ""
+    },
+    {
+      "key": "user_id",
+      "value": ""
+    },
+    {
+      "key": "role",
+      "value": ""
+    },
+    {
+      "key": "userid",
+      "value": ""
+    },
+    {
+      "key": "accountcode",
+      "value": ""
+    },
+    {
+      "key": "groupcode",
+      "value": ""
+    },
+    {
+      "key": "cursor_start",
+      "value": ""
+    },
+    {
+      "key": "cursor_end",
+      "value": ""
+    },
+    {
+      "key": "limit",
+      "value": ""
+    }
+  ]
+}

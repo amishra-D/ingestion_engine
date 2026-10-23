@@ -10,10 +10,11 @@ from src.features.Tradebook.Application.ports.GetTradesRepository import (
 from src.shared.database.sp_executor import StoredProcedureExecutor
 from src.shared.measure_time import measure_time
 
+
 class GetTradeRepository(IGetTradesRepository):
-    """Inherits from the port defined in the application layer and 
+    """Inherits from the port defined in the application layer and
     executes the SP from the SP GATEWAY in the shared"""
-    
+
     def __init__(self, sp_executor: StoredProcedureExecutor):
         self.sp_executor = sp_executor
 
@@ -28,6 +29,8 @@ class GetTradeRepository(IGetTradesRepository):
             "EndCursor": user_data.pagination.cursor_end,
             "Limit": user_data.pagination.limit,
         }
-        
-        result_sets = await self.sp_executor.execute_result_sets("usp_GetTradeBook", params)
+
+        result_sets = await self.sp_executor.execute_result_sets(
+            "usp_GetTradeBook", params
+        )
         return TradeBookPageOutDto.from_db(result_sets)

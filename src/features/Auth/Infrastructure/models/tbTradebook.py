@@ -1,4 +1,3 @@
-
 from sqlalchemy import Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -10,12 +9,12 @@ class Tradebook(Base):
     __table_args__ = {"schema": "dbo"}
 
     # Primary key
-    id: Mapped[int] = mapped_column(
-        "id", Integer, primary_key=True, autoincrement=True
-    )
+    id: Mapped[int] = mapped_column("id", Integer, primary_key=True, autoincrement=True)
 
     # String columns
-    sql_date_time: Mapped[str] = mapped_column("SQLDateTime", String(80), nullable=False)
+    sql_date_time: Mapped[str] = mapped_column(
+        "SQLDateTime", String(80), nullable=False
+    )
     date_time: Mapped[str] = mapped_column("DateTime", String(80), nullable=False)
     trade_num: Mapped[str] = mapped_column("TradeNum", String(80), nullable=False)
     order_num: Mapped[str] = mapped_column("OrderNum", String(80), nullable=False)
@@ -29,9 +28,13 @@ class Tradebook(Base):
     exchange: Mapped[str] = mapped_column("Exchange", String(20), nullable=False)
     opt_type: Mapped[str] = mapped_column("OptType", String(20), nullable=False)
     expiry_date: Mapped[str] = mapped_column("ExpiryDate", String(80), nullable=False)
-    scrip_desc: Mapped[str] = mapped_column("ScripDescription", String(80), nullable=False)
+    scrip_desc: Mapped[str] = mapped_column(
+        "ScripDescription", String(80), nullable=False
+    )
     buy_sell_flag: Mapped[str] = mapped_column("BuySellFlag", String(4), nullable=False)
-    security_type: Mapped[str] = mapped_column("SecurityType", String(20), nullable=False)
+    security_type: Mapped[str] = mapped_column(
+        "SecurityType", String(20), nullable=False
+    )
     ref_text: Mapped[str] = mapped_column("ReferenceText", String(50), nullable=False)
 
     # Numeric columns
@@ -42,12 +45,8 @@ class Tradebook(Base):
     trade_price: Mapped[float] = mapped_column(
         "TradePrice", Numeric(20, 6), nullable=False
     )
-    main_trade_id: Mapped[int] = mapped_column(
-        "MainTradeID", Integer, nullable=False
-    )
+    main_trade_id: Mapped[int] = mapped_column("MainTradeID", Integer, nullable=False)
     pending_qty: Mapped[int] = mapped_column("PendingQty", Integer, nullable=False)
 
     # Nullable column in SQL Server
-    custom_id: Mapped[int | None] = mapped_column(
-        "CustomID", Integer, nullable=True
-    )
+    custom_id: Mapped[int | None] = mapped_column("CustomID", Integer, nullable=True)

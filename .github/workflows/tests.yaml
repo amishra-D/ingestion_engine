@@ -33,5 +33,9 @@ jobs:
             - name: Install Dependencies
               run: uv sync --locked
 
-            - name: Run Tests
-              run: uv run pytest -v
+            - name: Run Tests with coverage
+              run: |
+                    uv run --locked pytest tests/unit_tests -v \
+                    --cov=src \
+                    --cov-report=term-missing \
+                    --cov-report=xml:coverage.xml

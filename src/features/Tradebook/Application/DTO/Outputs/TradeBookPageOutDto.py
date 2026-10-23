@@ -8,6 +8,7 @@ from typing import Any
 from src.features.Tradebook.Domain.value_objects.cursor import encode_cursor
 from src.shared.measure_time import measure_time
 
+
 @dataclass
 class TradeBookOutDto:
     trade_id: int

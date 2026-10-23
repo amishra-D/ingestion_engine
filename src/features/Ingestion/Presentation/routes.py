@@ -4,7 +4,9 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel
 
-from src.features.Tradebook.Application.DTO.Outputs.TradeBookOutDto import TradeBookOutDto
+from src.features.Tradebook.Application.DTO.Outputs.TradeBookOutDto import (
+    TradeBookOutDto,
+)
 from src.ingestion_engine.engine import ingestion_engine
 from src.shared.security.dependencies import TokenPayload, require_roles
 
@@ -39,7 +41,10 @@ async def start_ingestion(
     global _bg_task
 
     if ingestion_engine.get_status()["is_running"]:
-        return {"message": "Ingestion engine is already running", "status": ingestion_engine.get_status()}
+        return {
+            "message": "Ingestion engine is already running",
+            "status": ingestion_engine.get_status(),
+        }
 
     await ingestion_engine.initialize()
 
@@ -72,7 +77,10 @@ async def stop_ingestion(
     if _bg_task and not _bg_task.done():
         _bg_task.cancel()
         _bg_task = None
-    return {"message": "Continuous trade ingestion stopped", "status": ingestion_engine.get_status()}
+    return {
+        "message": "Continuous trade ingestion stopped",
+        "status": ingestion_engine.get_status(),
+    }
 
 
 @router.get("/status", response_model=IngestionStatusResponse)
@@ -87,7 +95,9 @@ async def get_status():
     status_code=status.HTTP_201_CREATED,
 )
 async def generate_sample(
-    count: int = Query(default=1, ge=1, le=100, description="Number of sample trades to generate"),
+    count: int = Query(
+        default=1, ge=1, le=100, description="Number of sample trades to generate"
+    ),
     current_user: TokenPayload = Depends(require_roles(["ADMIN"])),
 ):
     """Generates and inserts N sample trades immediately and returns them in the TradeBook API format."""

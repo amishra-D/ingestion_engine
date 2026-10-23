@@ -26,7 +26,9 @@ class TradeIngestionEngine:
     Strictly restricts dealers, accounts, terminals, and member codes to the seed data.
     """
 
-    def __init__(self, database: Database = db, dealers: list[DealerSeed] | None = None):
+    def __init__(
+        self, database: Database = db, dealers: list[DealerSeed] | None = None
+    ):
         self.database = database
         self.dealers: list[DealerSeed] = dealers or SEED_DEALERS
         self._is_running: bool = False
@@ -43,7 +45,9 @@ class TradeIngestionEngine:
 
         # Sync counter from current MAX(MainTradeID)
         async with self.database.acquire_cursor() as cursor:
-            await cursor.execute("SELECT COALESCE(MAX(MainTradeID), 0) FROM dbo.tbTradeBook")
+            await cursor.execute(
+                "SELECT COALESCE(MAX(MainTradeID), 0) FROM dbo.tbTradeBook"
+            )
             row = await cursor.fetchone()
             current_max = row[0] if row and row[0] is not None else 0
             self._trade_counter = int(current_max)
@@ -59,7 +63,9 @@ class TradeIngestionEngine:
                     db_dealers = []
                     for r in rows:
                         # Find matching ctcl_id from seeds or fallback to CTCL001
-                        seed_match = next((s for s in SEED_DEALERS if s.dealer_code == r[3]), None)
+                        seed_match = next(
+                            (s for s in SEED_DEALERS if s.dealer_code == r[3]), None
+                        )
                         ctcl = seed_match.ctcl_id if seed_match else "CTCL001"
                         db_dealers.append(
                             DealerSeed(
@@ -75,7 +81,9 @@ class TradeIngestionEngine:
                     if db_dealers:
                         self.dealers = db_dealers
             except Exception as e:  # noqa: BLE001
-                logger.warning(f"Could not query Config_DealerMap directly, using predefined seeds: {e}")
+                logger.warning(
+                    f"Could not query Config_DealerMap directly, using predefined seeds: {e}"
+                )
 
         logger.info(
             f"Ingestion Engine initialized. Starting TradeID counter at {self._trade_counter + 1} "
@@ -189,7 +197,9 @@ class TradeIngestionEngine:
 
         col_clause = ", ".join(columns)
         param_placeholders = ", ".join("?" for _ in columns)
-        sql = f"INSERT INTO dbo.tbTradeBook ({col_clause}) VALUES ({param_placeholders})"
+        sql = (
+            f"INSERT INTO dbo.tbTradeBook ({col_clause}) VALUES ({param_placeholders})"
+        )
 
         async with self.database.acquire_cursor() as cursor:
             for t in trades:
@@ -231,7 +241,9 @@ class TradeIngestionEngine:
                 inserted_in_session += len(trades)
 
                 if max_trades is not None and inserted_in_session >= max_trades:
-                    logger.info(f"Reached max_trades limit ({max_trades}). Stopping ingestion.")
+                    logger.info(
+                        f"Reached max_trades limit ({max_trades}). Stopping ingestion."
+                    )
                     break
 
                 await asyncio.sleep(interval_seconds)
@@ -249,7 +261,11 @@ class TradeIngestionEngine:
 
     def get_status(self) -> dict[str, Any]:
         """Returns the current state and metrics of the ingestion engine."""
-        uptime = time.time() - self._start_time if self._start_time and self._is_running else 0.0
+        uptime = (
+            time.time() - self._start_time
+            if self._start_time and self._is_running
+            else 0.0
+        )
         rate = (self._total_inserted / uptime) if uptime > 0 else 0.0
         return {
             "is_running": self._is_running,

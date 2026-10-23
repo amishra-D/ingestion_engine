@@ -1,4 +1,3 @@
-
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, Integer, String, text
@@ -15,21 +14,15 @@ class User(Base):
         "UserId", Integer, primary_key=True, autoincrement=True
     )
 
-    username: Mapped[str] = mapped_column(
-        "Username", String(50), nullable=False
-    )
+    username: Mapped[str] = mapped_column("Username", String(50), nullable=False)
 
     password_hash: Mapped[str] = mapped_column(
         "PasswordHash", String(64), nullable=False
     )
 
-    role: Mapped[str] = mapped_column(
-        "Role", String(20), nullable=False
-    )
+    role: Mapped[str] = mapped_column("Role", String(20), nullable=False)
 
-    is_active: Mapped[bool] = mapped_column(
-        "isActive", Boolean, nullable=False
-    )
+    is_active: Mapped[bool] = mapped_column("isActive", Boolean, nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
         "CreatedAt",

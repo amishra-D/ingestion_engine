@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 def measure_time(func: Callable[P, R]) -> Callable[P, R]:
     if inspect.iscoroutinefunction(func):
+
         @wraps(func)
         async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> Any:
             start = perf_counter()
@@ -24,6 +25,7 @@ def measure_time(func: Callable[P, R]) -> Callable[P, R]:
                     func.__qualname__,
                     elapsed * 1000,
                 )
+
         return async_wrapper  # type: ignore[return-value]
 
     @wraps(func)
@@ -38,4 +40,5 @@ def measure_time(func: Callable[P, R]) -> Callable[P, R]:
                 func.__qualname__,
                 elapsed * 1000,
             )
+
     return sync_wrapper

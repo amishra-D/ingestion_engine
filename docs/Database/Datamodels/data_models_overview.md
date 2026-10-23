@@ -107,14 +107,14 @@ In the write/security path, domain invariants must be strictly enforced. When a 
 ```python
 # Database Record -> Domain Entity
 UserAccount(
-    user_id=int(row[0]),          # UserId
-    username=str(row[1]),         # Username
-    password_hash=bytes(row[2]),   # PasswordHash (binary 64)
-    role=str(row[3]),             # Role (ADMIN, BROKER, DEALER, GROUP)
-    is_active=bool(row[4]),       # isActive
-    created_at=row[5],            # CreatedAt
-    updated_at=row[6],            # UpdatedAt
-    last_login_at=row[7],         # LastLoginAt
+    user_id=int(row[0]),  # UserId
+    username=str(row[1]),  # Username
+    password_hash=bytes(row[2]),  # PasswordHash (binary 64)
+    role=str(row[3]),  # Role (ADMIN, BROKER, DEALER, GROUP)
+    is_active=bool(row[4]),  # isActive
+    created_at=row[5],  # CreatedAt
+    updated_at=row[6],  # UpdatedAt
+    last_login_at=row[7],  # LastLoginAt
 )
 ```
 

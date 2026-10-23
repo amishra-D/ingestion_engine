@@ -52,13 +52,13 @@ def decode_cursor(cursor_str: str | int | None) -> int | None:
     if cursor_str is None:
         return None
 
-    #If cursor is an integer check if its positive
+    # If cursor is an integer check if its positive
     if isinstance(cursor_str, int):
         if cursor_str <= 0:
             raise ValueError("Cursor ID must be positive")
         return cursor_str
 
-    #Cursor should be base64 string or an integer
+    # Cursor should be base64 string or an integer
     if not isinstance(cursor_str, str):
         raise ValueError("Cursor must be a Base64 string or integer")
 

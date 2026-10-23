@@ -17,12 +17,11 @@ from src.features.Tradebook.Presentation.exception_handlers import (
 )
 
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await db.create_connection()
     ingestion_task = None
-    settings=get_settings()
+    settings = get_settings()
     if settings.AUTO_INGESTION:
         await ingestion_engine.initialize()
         ingestion_task = asyncio.create_task(
