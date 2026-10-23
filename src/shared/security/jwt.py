@@ -4,9 +4,9 @@ from typing import Any
 import jwt
 from pydantic import BaseModel
 
-from src.shared.config.settings import settings
+from src.shared.config.settings import get_settings
 
-
+settings=get_settings()
 class TokenPayload(BaseModel):
     sub: str          # Username
     user_id: int      # UserId
