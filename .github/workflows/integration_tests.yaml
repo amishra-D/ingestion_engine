@@ -1,7 +1,8 @@
 name: Integration Tests
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [master,main]
 
 permissions:
   contents: read
@@ -36,22 +37,25 @@ jobs:
 
     steps:
       - name: Checkout code
+        if: ${{ always() }}
         uses: actions/checkout@v6
 
       - name: Install uv
+        if: ${{ always() }}
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
         with:
           version: "0.12.12"
 
       - name: Install Python
+        if: ${{ always() }}
         run: uv python install 3.13.13
 
       - name: Set up dependencies
+        if: ${{ always() }}
         run: uv sync --locked
 
-      # IMPORTANT: mssql-tools18 alone does not install
-      # the Microsoft ODBC driver required by pyodbc/aioodbc.
       - name: Install Microsoft ODBC Driver 18
+        if: ${{ always() }}
         run: |
           curl -sSL \
             -o packages-microsoft-prod.deb \
@@ -68,13 +72,14 @@ jobs:
             unixodbc-dev
 
       - name: Verify ODBC driver
+        if: ${{ always() }}
         run: |
           odbcinst -q -d
           uv run python -c "import pyodbc; print('Python ODBC drivers:', pyodbc.drivers())"
-
           uv run python -c "import pyodbc; assert 'ODBC Driver 18 for SQL Server' in pyodbc.drivers(), 'Microsoft ODBC Driver 18 is missing'"
 
       - name: Wait for SQL Server
+        if: ${{ always() }}
         env:
           TEST_DB_PASSWORD: ${{ secrets.TEST_DB_PASSWORD }}
         run: |
@@ -87,7 +92,6 @@ jobs:
               echo "SQL Server is ready"
               exit 0
             fi
-
             sleep 2
           done
 
@@ -95,6 +99,7 @@ jobs:
           exit 1
 
       - name: Create test database
+        if: ${{ always() }}
         env:
           TEST_DB_PASSWORD: ${{ secrets.TEST_DB_PASSWORD }}
         run: |
@@ -107,6 +112,7 @@ jobs:
                 CREATE DATABASE friskit_test;"
 
       - name: Run DDL scripts
+        if: ${{ always() }}
         env:
           TEST_DB_PASSWORD: ${{ secrets.TEST_DB_PASSWORD }}
         run: |
@@ -119,6 +125,7 @@ jobs:
             -i sql/scripts.sql
 
       - name: Verify application database connection
+        if: ${{ always() }}
         run: |
           uv run python - <<'PY'
           import os
@@ -131,26 +138,33 @@ jobs:
           PY
 
       - name: Lint
+        if: ${{ always() }}
         run: uv run ruff check .
 
       - name: Format check
+        if: ${{ always() }}
         run: uv run ruff format --check .
 
       - name: Type check
+        if: ${{ always() }}
         run: uv run mypy src
 
       - name: Run tests
+        if: ${{ always() }}
         run: uv run pytest
 
       - name: Set up Node.js
+        if: ${{ always() }}
         uses: actions/setup-node@v6
         with:
           node-version: 22
 
       - name: Install Newman
+        if: ${{ always() }}
         run: npm install -g newman
 
       - name: Start server
+        if: ${{ always() }}
         run: |
           uv run uvicorn app:app \
             --host 0.0.0.0 \
@@ -159,6 +173,7 @@ jobs:
           echo $! > server.pid
 
       - name: Wait for API
+        if: ${{ always() }}
         run: |
           for i in $(seq 1 30); do
             if curl --fail --silent \
@@ -167,7 +182,6 @@ jobs:
               echo "API is ready"
               exit 0
             fi
-
             sleep 2
           done
 
@@ -176,6 +190,7 @@ jobs:
           exit 1
 
       - name: Run Postman collection with Newman
+        if: ${{ always() }}
         env:
           TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
         run: |
@@ -188,7 +203,7 @@ jobs:
             --env-var "user_id="
 
       - name: Upload server logs on failure
-        if: failure()
+        if: ${{ always() }}
         uses: actions/upload-artifact@v6
         with:
           name: integration-test-server-logs
