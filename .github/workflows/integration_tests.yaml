@@ -27,7 +27,7 @@ jobs:
           --health-start-period 20s
 
     env:
-      DATABASE_URI: ${{ secrets.TEST_DB_URI }}
+      DATABASE_URI: "DRIVER={ODBC Driver 18 for SQL Server};SERVER=localhost,1433;DATABASE=friskit_test;UID=sa;PWD=${{ secrets.TEST_DB_PASSWORD }};Encrypt=yes;TrustServerCertificate=yes;"
       MIN_POOL_SIZE: ${{ secrets.MIN_POOL_SIZE }}
       MAX_POOL_SIZE: ${{ secrets.MAX_POOL_SIZE }}
       ALGORITHM: ${{ secrets.ALGORITHM }}
@@ -50,7 +50,15 @@ jobs:
       - name: Set up dependencies
         run: uv sync --locked
 
-      c
+      - name: Install SQL Server tools
+        run: |
+          curl -sSL \
+            -o packages-microsoft-prod.deb \
+            https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb
+          sudo dpkg -i packages-microsoft-prod.deb
+          rm packages-microsoft-prod.deb
+          sudo apt-get update
+          sudo ACCEPT_EULA=Y apt-get install -y mssql-tools18
 
       - name: Wait for SQL Server
         env:
