@@ -198,8 +198,8 @@ jobs:
             postman-collections/Ingestion-Engine.postman_collection.json \
             --env-var "BASE_URL=http://127.0.0.1:8000" \
             --env-var "password=$TEST_ADMIN_PASSWORD" \
-            --env-var "Username=Admin" \
-            --env-var "AccountCode=" \
+            --env-var "username=Admin" \
+            --env-var "accountCode=" \
             --env-var "user_id="
 
       - name: Upload server logs on failure
