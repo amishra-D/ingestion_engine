@@ -1,4 +1,3 @@
-
 name: Integration Tests
 
 on:
@@ -9,7 +8,7 @@ permissions:
 
 jobs:
   integration-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     services:
       mssql:
@@ -20,7 +19,7 @@ jobs:
         ports:
           - 1433:1433
         options: >-
-          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P $MSSQL_SA_PASSWORD -Q 'SELECT 1' || exit 1"
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P '$MSSQL_SA_PASSWORD' -Q 'SELECT 1' || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 12
@@ -28,12 +27,12 @@ jobs:
 
     env:
       DATABASE_URI: "DRIVER={ODBC Driver 18 for SQL Server};SERVER=localhost,1433;DATABASE=friskit_test;UID=sa;PWD=${{ secrets.TEST_DB_PASSWORD }};Encrypt=yes;TrustServerCertificate=yes;"
-      MIN_POOL_SIZE: ${{ secrets.MIN_POOL_SIZE }}
-      MAX_POOL_SIZE: ${{ secrets.MAX_POOL_SIZE }}
-      ALGORITHM: ${{ secrets.ALGORITHM }}
+      MIN_POOL_SIZE: ${{ secrets.MIN_POOL_SIZE || '1' }}
+      MAX_POOL_SIZE: ${{ secrets.MAX_POOL_SIZE || '5' }}
+      ALGORITHM: ${{ secrets.ALGORITHM || 'HS256' }}
       SECRET_KEY: ${{ secrets.SECRET_KEY }}
-      AUTO_INGESTION: ${{ secrets.AUTO_INGESTION }}
-      INGESTION_INTERVAL: ${{ secrets.INGESTION_INTERVAL }}
+      AUTO_INGESTION: "False"
+      INGESTION_INTERVAL: ${{ secrets.INGESTION_INTERVAL || '300' }}
 
     steps:
       - name: Checkout code
@@ -50,15 +49,30 @@ jobs:
       - name: Set up dependencies
         run: uv sync --locked
 
-      - name: Install SQL Server tools
+      # IMPORTANT: mssql-tools18 alone does not install
+      # the Microsoft ODBC driver required by pyodbc/aioodbc.
+      - name: Install Microsoft ODBC Driver 18
         run: |
           curl -sSL \
             -o packages-microsoft-prod.deb \
             https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb
+
           sudo dpkg -i packages-microsoft-prod.deb
           rm packages-microsoft-prod.deb
+
           sudo apt-get update
-          sudo ACCEPT_EULA=Y apt-get install -y mssql-tools18
+          sudo ACCEPT_EULA=Y apt-get install -y \
+            msodbcsql18 \
+            mssql-tools18 \
+            unixodbc \
+            unixodbc-dev
+
+      - name: Verify ODBC driver
+        run: |
+          odbcinst -q -d
+          uv run python -c "import pyodbc; print('Python ODBC drivers:', pyodbc.drivers())"
+
+          uv run python -c "import pyodbc; assert 'ODBC Driver 18 for SQL Server' in pyodbc.drivers(), 'Microsoft ODBC Driver 18 is missing'"
 
       - name: Wait for SQL Server
         env:
@@ -73,6 +87,7 @@ jobs:
               echo "SQL Server is ready"
               exit 0
             fi
+
             sleep 2
           done
 
@@ -103,41 +118,47 @@ jobs:
             -d friskit_test \
             -i sql/scripts.sql
 
+      - name: Verify application database connection
+        run: |
+          uv run python - <<'PY'
+          import os
+          import pyodbc
+
+          with pyodbc.connect(os.environ["DATABASE_URI"], timeout=10) as conn:
+              cursor = conn.cursor()
+              cursor.execute("SELECT DB_NAME()")
+              print("Connected database:", cursor.fetchone()[0])
+          PY
+
       - name: Lint
         run: uv run ruff check .
 
       - name: Format check
-        if: ${{ always() }}
         run: uv run ruff format --check .
 
       - name: Type check
-        if: ${{ always() }}
         run: uv run mypy src
 
       - name: Run tests
-        if: ${{ always() }}
         run: uv run pytest
 
       - name: Set up Node.js
-        if: ${{ always() }}
         uses: actions/setup-node@v6
         with:
           node-version: 22
 
       - name: Install Newman
-        if: ${{ always() }}
         run: npm install -g newman
 
       - name: Start server
-        if: ${{ always() }}
         run: |
           uv run uvicorn app:app \
             --host 0.0.0.0 \
             --port 8000 > server.log 2>&1 &
+
           echo $! > server.pid
 
       - name: Wait for API
-        if: ${{ always() }}
         run: |
           for i in $(seq 1 30); do
             if curl --fail --silent \
@@ -146,6 +167,7 @@ jobs:
               echo "API is ready"
               exit 0
             fi
+
             sleep 2
           done
 
@@ -154,7 +176,6 @@ jobs:
           exit 1
 
       - name: Run Postman collection with Newman
-        if: ${{ always() }}
         env:
           TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
         run: |
